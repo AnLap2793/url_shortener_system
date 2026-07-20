@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard analytics — URL Shortener</title>
+  <style>
+    :root {
+      --page: #f9f9f7;
+      --surface: #fcfcfb;
+      --surface-raised: #fff;
+      --ink: #0b0b0b;
+      --ink-secondary: #52514e;
+      --ink-muted: #64635f;
+      --border: #e1e0d9;
+      --border-strong: #c3c2b7;
+      --primary: #1c5cab;
+      --primary-hover: #104281;
+      --primary-soft: #eaf2fc;
+      --navy: #0d366b;
+      --good: #006300;
+      --warning: #8a5700;
+      --danger: #b42318;
+      --series-1: #2a78d6;
+      --series-2: #1b7f61;
+      --series-3: #a66d00;
+      --series-4: #4a3aa7;
+      --r-sm: 6px;
+      --r-md: 8px;
+      --r-lg: 12px;
+      --shadow-popover: 0 18px 48px rgba(13, 54, 107, .14), 0 2px 8px rgba(13, 54, 107, .08);
+      color-scheme: light;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--page); }
+    body { margin: 0; min-width: 320px; color: var(--ink); background: var(--page); }
+    button, input, select { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .skip-link { position: fixed; left: 16px; top: -80px; z-index: 1000; padding: 10px 14px; background: var(--ink); color: #fff; border-radius: var(--r-sm); }
+    .skip-link:focus { top: 16px; }
+    .app { min-height: 100dvh; display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 0; height: 100dvh; padding: 24px 16px; border-right: 1px solid var(--border); background: #f4f4f0; display: flex; flex-direction: column; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 10px 28px; font-weight: 720; letter-spacing: -.02em; }
+    .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px 4px 9px 4px; background: var(--navy); color: #fff; }
+    .nav-label { margin: 4px 10px 8px; color: var(--ink-muted); font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+    .nav { display: grid; gap: 4px; }
+    .nav a { min-height: 44px; padding: 10px 12px; border-radius: var(--r-md); display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--ink-secondary); font-weight: 560; }
+    .nav a:hover { background: #ecece7; color: var(--ink); }
+    .nav a[aria-current="page"] { background: var(--navy); color: #fff; }
+    .nav svg, .icon-button svg { width: 18px; height: 18px; stroke-width: 1.8; }
+    .account { margin-top: auto; padding: 14px 10px 0; border-top: 1px solid var(--border); display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; }
+    .avatar { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #dbe9f8; color: var(--navy); font-weight: 720; }
+    .account strong, .account small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .account small { color: var(--ink-muted); margin-top: 2px; }
+    .main { min-width: 0; }
+    .topbar { min-height: 72px; padding: 14px clamp(18px, 3vw, 40px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; background: rgba(249, 249, 247, .96); position: sticky; top: 0; z-index: 30; }
+    .breadcrumb { color: var(--ink-muted); font-size: 14px; }
+    .top-actions { display: flex; gap: 8px; align-items: center; }
+    .button, .icon-button { min-height: 44px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; font-weight: 650; text-decoration: none; transition: border-color 160ms, background-color 160ms, color 160ms; }
+    .button:hover, .icon-button:hover { border-color: var(--ink-muted); background: #f4f4f0; }
+    .button.primary { border-color: var(--primary); background: var(--primary); color: #fff; }
+    .button.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .icon-button { width: 44px; padding: 0; }
+    .menu-button { display: none; }
+    main { max-width: 1440px; margin: 0 auto; padding: 34px clamp(18px, 3vw, 40px) 56px; }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+    h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); line-height: 1.12; letter-spacing: -.035em; text-wrap: balance; }
+    .subtitle { margin: 8px 0 0; color: var(--ink-secondary); max-width: 62ch; }
+    .freshness { min-width: max-content; color: var(--ink-muted); font-size: 13px; text-align: right; }
+    .freshness strong { color: var(--good); font-weight: 650; }
+    .filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 24px; }
+    .filterbar select { min-height: 44px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink); padding: 0 36px 0 12px; }
+    .filter-spacer { flex: 1; }
+    .compare-notice { padding: 10px 12px; border-left: 3px solid var(--series-1); background: var(--primary-soft); color: var(--navy); font-size: 14px; }
+    .kpis { display: grid; grid-template-columns: minmax(200px, 1.4fr) repeat(3, minmax(150px, 1fr)); border-block: 1px solid var(--border); margin-bottom: 28px; }
+    .kpi { padding: 22px 24px; min-width: 0; }
+    .kpi + .kpi { border-left: 1px solid var(--border); }
+    .kpi-label { color: var(--ink-muted); font-size: 13px; font-weight: 620; }
+    .kpi-value { margin-top: 9px; font-variant-numeric: tabular-nums; font-size: clamp(25px, 3vw, 38px); font-weight: 720; letter-spacing: -.035em; }
+    .kpi-primary .kpi-value { font-size: clamp(34px, 4vw, 52px); }
+    .delta { margin-top: 8px; color: var(--good); font-size: 13px; font-weight: 620; }
+    .delta::before { content: "↗ "; }
+    .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, .85fr); gap: 24px; }
+    .panel { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+    .panel-header { padding: 20px 22px 14px; display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+    .panel h2 { margin: 0; font-size: 17px; letter-spacing: -.012em; }
+    .panel-header p { margin: 5px 0 0; color: var(--ink-muted); font-size: 13px; }
+    .chart { padding: 8px 20px 20px; }
+    .chart svg { display: block; width: 100%; height: auto; min-height: 240px; overflow: visible; }
+    .chart-gridline { stroke: var(--border); stroke-width: 1; }
+    .chart-axis { fill: var(--ink-muted); font-size: 11px; }
+    .chart-line { fill: none; stroke: var(--series-1); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-area { fill: #dbeafb; opacity: .65; }
+    .chart-dot { fill: var(--surface); stroke: var(--series-1); stroke-width: 2.5; }
+    .bars { padding: 4px 22px 22px; display: grid; gap: 15px; }
+    .bar-row { display: grid; grid-template-columns: minmax(88px, 1fr) minmax(100px, 2.2fr) 48px; align-items: center; gap: 12px; font-size: 13px; }
+    .bar-row strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .track { height: 8px; border-radius: 4px; background: #e9e9e4; overflow: hidden; }
+    .fill { height: 100%; border-radius: 4px; background: var(--series-1); }
+    .fill.green { background: var(--series-2); }
+    .fill.gold { background: var(--series-3); }
+    .fill.violet { background: var(--series-4); }
+    .bar-value { font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-secondary); }
+    .wide { grid-column: 1 / -1; }
+    .table-wrap { overflow-x: auto; border-radius: 0 0 var(--r-lg) var(--r-lg); }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    caption { padding: 0 22px 12px; color: var(--ink-muted); text-align: left; font-size: 13px; }
+    th, td { padding: 15px 18px; border-top: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    th { color: var(--ink-muted); font-size: 12px; font-weight: 660; background: #f7f7f4; }
+    td { font-size: 14px; }
+    .short-link { color: var(--primary); font-weight: 670; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .destination { max-width: 330px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-secondary); }
+    .tag { display: inline-flex; align-items: center; min-height: 28px; padding: 3px 8px; border-radius: var(--r-sm); background: #edf5ef; color: var(--good); font-size: 12px; font-weight: 650; }
+    .chart-tooltip { position: fixed; z-index: 100; pointer-events: none; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-popover); background: var(--surface-raised); color: var(--ink); font-size: 13px; opacity: 0; transform: translateY(4px); transition: opacity 120ms, transform 120ms; }
+    .chart-tooltip.visible { opacity: 1; transform: translateY(0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 1100px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .kpi:nth-child(3) { border-left: 0; border-top: 1px solid var(--border); }
+      .kpi:nth-child(4) { border-top: 1px solid var(--border); }
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 767px) {
+      .app { display: block; }
+      .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 90; width: min(86vw, 300px); transform: translateX(-105%); transition: transform 180ms cubic-bezier(.22,.8,.24,1); box-shadow: var(--shadow-popover); }
+      .sidebar.open { transform: translateX(0); }
+      .menu-button { display: inline-flex; }
+      .breadcrumb { display: none; }
+      .topbar { min-height: 64px; padding: 10px 14px; }
+      .top-actions .button:not(.primary) { display: none; }
+      main { padding: 24px 16px 44px; }
+      .page-heading { align-items: start; flex-direction: column; margin-bottom: 22px; }
+      .freshness { text-align: left; }
+      .filterbar { display: grid; grid-template-columns: 1fr 1fr; }
+      .filterbar select, .filterbar .button { width: 100%; }
+      .filter-spacer { display: none; }
+      .compare-notice { grid-column: 1 / -1; }
+      .kpis { grid-template-columns: 1fr; }
+      .kpi + .kpi, .kpi:nth-child(3), .kpi:nth-child(4) { border-left: 0; border-top: 1px solid var(--border); }
+      .bar-row { grid-template-columns: 88px minmax(90px, 1fr) 42px; }
+      .panel-header { padding-inline: 16px; }
+      .chart, .bars { padding-inline: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Điều hướng chính">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">↗</span><span>Shortwise</span></div>
+      <div class="nav-label">Không gian làm việc</div>
+      <nav class="nav">
+        <a href="#" aria-current="page"><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg>Dashboard</a>
+        <a href="#links"><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></svg>Links</a>
+        <a href="#account"><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg>Account</a>
+      </nav>
+      <div class="account"><div class="avatar" aria-hidden="true">LA</div><div><strong>Linh Anh</strong><small>linh@northstar.vn</small></div></div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menuButton" aria-label="Mở điều hướng" aria-controls="sidebar" aria-expanded="false"><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <div class="breadcrumb">Workspace / Dashboard</div>
+        <div class="top-actions">
+          <a class="button" href="#compare">Compare links</a>
+          <a class="button primary" href="create-link.html">Create short link</a>
+        </div>
+      </header>
+
+      <main id="main" tabindex="-1">
+        <div class="page-heading">
+          <div><h1>Campaign pulse</h1><p class="subtitle">Hiệu quả của các short link trong 30 ngày gần nhất, theo dữ liệu đã xử lý.</p></div>
+          <div class="freshness" aria-live="polite"><strong>Data ready</strong><br><span id="updatedText">Updated 18 seconds ago</span></div>
+        </div>
+
+        <section class="filterbar" aria-label="Bộ lọc dashboard">
+          <label class="sr-only" for="dateRange">Khoảng thời gian</label>
+          <select id="dateRange"><option>Last 30 days</option><option>Last 7 days</option><option>Today</option><option>Custom range</option></select>
+          <label class="sr-only" for="channelFilter">Kênh</label>
+          <select id="channelFilter"><option>All channels</option><option>Email</option><option>Paid social</option></select>
+          <div class="compare-notice">2 active campaign links · filters apply to all data below</div>
+          <span class="filter-spacer"></span>
+          <button class="button" id="refreshButton" type="button"><svg aria-hidden="true" width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5M18.5 9A7 7 0 0 0 6.1 6.1L4 8m16 8-2.1 1.9A7 7 0 0 1 5.5 15"/></svg><span>Refresh</span></button>
+        </section>
+
+        <section class="kpis" aria-label="Chỉ số chính">
+          <article class="kpi kpi-primary"><div class="kpi-label">Total clicks</div><div class="kpi-value">18,742</div><div class="delta">12.8% from previous period</div></article>
+          <article class="kpi"><div class="kpi-label">Top channel</div><div class="kpi-value">Paid social</div><div class="delta">8,416 clicks</div></article>
+          <article class="kpi"><div class="kpi-label">Top location</div><div class="kpi-value">Hồ Chí Minh</div><div class="delta">Estimated · 31.6%</div></article>
+          <article class="kpi"><div class="kpi-label">Top device</div><div class="kpi-value">Mobile</div><div class="delta">67.3% of clicks</div></article>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel" aria-labelledby="trendTitle">
+            <div class="panel-header"><div><h2 id="trendTitle">Clicks by day</h2><p>UTC · daily total across selected links</p></div><span class="tag">+12.8%</span></div>
+            <div class="chart" id="lineChart" aria-describedby="trendSummary">
+              <p id="trendSummary" class="sr-only">Clicks tăng từ khoảng 430 lên 910 mỗi ngày trong 30 ngày, cao nhất vào ngày 16 tháng 7.</p>
+              <svg viewBox="0 0 760 270" role="img" aria-label="Biểu đồ clicks theo ngày">
+                <line class="chart-gridline" x1="45" y1="30" x2="735" y2="30"/><line class="chart-gridline" x1="45" y1="90" x2="735" y2="90"/><line class="chart-gridline" x1="45" y1="150" x2="735" y2="150"/><line class="chart-gridline" x1="45" y1="210" x2="735" y2="210"/>
+                <text class="chart-axis" x="8" y="34">1k</text><text class="chart-axis" x="15" y="94">750</text><text class="chart-axis" x="15" y="154">500</text><text class="chart-axis" x="22" y="214">250</text>
+                <path class="chart-area" d="M45 190 L90 176 L135 182 L180 154 L225 162 L270 132 L315 140 L360 108 L405 118 L450 86 L495 96 L540 68 L585 79 L630 44 L680 58 L735 36 L735 210 L45 210 Z"/>
+                <path class="chart-line" d="M45 190 L90 176 L135 182 L180 154 L225 162 L270 132 L315 140 L360 108 L405 118 L450 86 L495 96 L540 68 L585 79 L630 44 L680 58 L735 36"/>
+                <g class="chart-points" data-chart-points><circle class="chart-dot" cx="45" cy="190" r="4" data-label="Jun 18" data-value="328"/><circle class="chart-dot" cx="180" cy="154" r="4" data-label="Jun 24" data-value="472"/><circle class="chart-dot" cx="360" cy="108" r="4" data-label="Jul 2" data-value="664"/><circle class="chart-dot" cx="540" cy="68" r="4" data-label="Jul 10" data-value="831"/><circle class="chart-dot" cx="735" cy="36" r="4" data-label="Jul 18" data-value="964"/></g>
+                <text class="chart-axis" x="45" y="242">Jun 18</text><text class="chart-axis" x="250" y="242">Jun 27</text><text class="chart-axis" x="470" y="242">Jul 7</text><text class="chart-axis" x="695" y="242">Jul 18</text>
+              </svg>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="channelTitle">
+            <div class="panel-header"><div><h2 id="channelTitle">Channel split</h2><p>UTM medium · exact click counts</p></div></div>
+            <div class="bars">
+              <div class="bar-row"><strong>Paid social</strong><div class="track"><div class="fill" style="width: 100%"></div></div><span class="bar-value">8,416</span></div>
+              <div class="bar-row"><strong>Email</strong><div class="track"><div class="fill green" style="width: 76%"></div></div><span class="bar-value">6,398</span></div>
+              <div class="bar-row"><strong>Organic</strong><div class="track"><div class="fill gold" style="width: 29%"></div></div><span class="bar-value">2,441</span></div>
+              <div class="bar-row"><strong>Unknown</strong><div class="track"><div class="fill violet" style="width: 18%"></div></div><span class="bar-value">1,487</span></div>
+            </div>
+          </section>
+
+          <section class="panel wide" id="links" aria-labelledby="linksTitle">
+            <div class="panel-header"><div><h2 id="linksTitle">Recent campaign links</h2><p>Short paths remain stable when destinations change</p></div><a class="button" href="#all-links">View all links</a></div>
+            <div class="table-wrap" tabindex="0" role="region" aria-label="Bảng recent campaign links, có thể cuộn ngang">
+              <table>
+                <caption>Four most recently active short links</caption>
+                <thead><tr><th scope="col">Short link</th><th scope="col">Destination</th><th scope="col">Channel</th><th scope="col">Clicks</th><th scope="col">Created</th></tr></thead>
+                <tbody>
+                  <tr><td><a class="short-link" href="#summer-ads">/summer-sale-ads</a></td><td class="destination" title="https://northstar.vn/summer-sale?utm_medium=paid-social">northstar.vn/summer-sale?utm_medium=paid-social</td><td><span class="tag">Paid social</span></td><td>8,416</td><td>Jun 18</td></tr>
+                  <tr><td><a class="short-link" href="#summer-email">/summer-sale-email</a></td><td class="destination" title="https://northstar.vn/summer-sale?utm_medium=email">northstar.vn/summer-sale?utm_medium=email</td><td><span class="tag">Email</span></td><td>6,398</td><td>Jun 18</td></tr>
+                  <tr><td><a class="short-link" href="#creator-pack">/creator-pack</a></td><td class="destination">northstar.vn/resources/creator-pack</td><td>Organic</td><td>2,441</td><td>Jul 2</td></tr>
+                  <tr><td><a class="short-link" href="#newsletter-27">/newsletter-27</a></td><td class="destination">northstar.vn/newsletter/july</td><td>Email</td><td>1,487</td><td>Jul 11</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="chart-tooltip" id="tooltip" role="status"></div>
+  <script>
+    const sidebar = document.querySelector('#sidebar');
+    const menuButton = document.querySelector('#menuButton');
+    menuButton?.addEventListener('click', () => {
+      const open = sidebar.classList.toggle('open');
+      menuButton.setAttribute('aria-expanded', String(open));
+    });
+
+    const refreshButton = document.querySelector('#refreshButton');
+    refreshButton.addEventListener('click', () => {
+      refreshButton.disabled = true;
+      refreshButton.querySelector('span').textContent = 'Refreshing…';
+      setTimeout(() => {
+        refreshButton.disabled = false;
+        refreshButton.querySelector('span').textContent = 'Refresh';
+        document.querySelector('#updatedText').textContent = 'Updated just now · data may lag up to 60 seconds';
+      }, 700);
+    });
+
+    const tooltip = document.querySelector('#tooltip');
+    document.querySelectorAll('[data-chart-points] circle').forEach((point) => {
+      point.addEventListener('pointerenter', (event) => {
+        tooltip.textContent = `${point.dataset.value} clicks · ${point.dataset.label}`;
+        tooltip.style.left = `${event.clientX + 12}px`;
+        tooltip.style.top = `${event.clientY + 12}px`;
+        tooltip.classList.add('visible');
+      });
+      point.addEventListener('pointerleave', () => tooltip.classList.remove('visible'));
+    });
+  </script>
+</body>
+</html>

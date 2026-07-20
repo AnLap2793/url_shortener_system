@@ -1,0 +1,72 @@
+# generated: 2026-07-19
+# last_updated: 2026-07-20
+# project: url_shortener_system
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status: backlog | in-progress | done
+# Story Status: backlog | ready-for-dev | in-progress | review | done
+# Retrospective Status: optional | done
+# Action Item Status: open | in-progress | done
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic becomes in-progress when its first story file is created.
+# - Default delivery is sequential; parallel work requires capacity and dependency safety.
+# - Stories pass through review before done.
+# - Epic 4 Release Readiness Checklist is an Epic DoD, not a tracked story.
+# - Before scheduling Stories 3.2, 3.4, 4.3, 4.5, apply the sizing gate in epics.md.
+
+generated: 2026-07-19
+last_updated: 2026-07-20
+project: url_shortener_system
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: in-progress
+  1-1-khoi-tao-secure-application-shell: review
+  1-2-xac-thuc-application-shell-va-ci-boundaries: backlog
+  1-3-tich-hop-better-auth-va-generated-api-contracts: backlog
+  1-4-dang-ky-va-xac-minh-email: backlog
+  1-5-dang-nhap-va-quan-ly-session: backlog
+  1-6-dang-nhap-bang-google: backlog
+  1-7-lien-ket-google-an-toan: backlog
+  epic-1-retrospective: optional
+  epic-2: backlog
+  2-1-tao-short-link-bang-generated-code: backlog
+  2-2-tao-custom-alias-trong-global-namespace: backlog
+  2-3-tao-campaign-url-bang-utm-builder: backlog
+  2-4-xem-va-tim-danh-sach-link: backlog
+  2-5-xem-link-detail-va-copy-short-link: backlog
+  2-6-sua-destination-url-an-toan: backlog
+  2-7-xoa-link-va-tombstone-path: backlog
+  2-8-rate-limit-va-chong-duplicate-create-requests: backlog
+  2-9-vo-hieu-hoa-malicious-link-qua-operational-control: backlog
+  epic-2-retrospective: optional
+  epic-3: backlog
+  3-1-public-redirect-va-route-precedence: backlog
+  3-2-nhan-dien-bot-va-derive-click-dimensions: backlog
+  3-3-ghi-durable-click-event-truoc-redirect: backlog
+  3-4-xu-ly-click-event-bang-fenced-postgresql-worker: backlog
+  3-5-idempotent-aggregation-va-dead-letter-recovery: backlog
+  3-6-raw-event-retention: backlog
+  3-7-giam-sat-click-processing-pipeline: backlog
+  3-8-trien-khai-render-singapore-va-van-hanh-migration-an-toan: backlog
+  3-9-benchmark-redirect-slo: backlog
+  3-10-kiem-chung-worker-failure-isolation-va-reconciliation: backlog
+  epic-3-retrospective: optional
+  epic-4: backlog
+  4-1-truy-van-total-click-va-analytics-summary: backlog
+  4-2-hien-thi-click-trend-theo-ngay-utc: backlog
+  4-3-breakdown-va-filter-analytics-theo-dimensions: backlog
+  4-4-refresh-analytics-va-freshness-states: backlog
+  4-5-so-sanh-2-5-campaign-links: backlog
+  4-6-accessible-responsive-analytics-visualization: backlog
+  4-7-benchmark-dashboard-analytics: backlog
+  4-8-xac-thuc-usability-cho-campaign-decision-loop: backlog
+  epic-4-retrospective: optional

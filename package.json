@@ -1,0 +1,51 @@
+{
+  "name": "url-shortener-system",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@10.9.4",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "workspaces": [
+    "packages/application",
+    "packages/domain",
+    "packages/db",
+    "packages/contracts",
+    "packages/observability",
+    "apps/web",
+    "apps/api",
+    "apps/worker"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:architecture": "node tests/architecture-boundaries.test.js",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run test:architecture && npm run build"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.1.28",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/platform-express": "11.1.28",
+    "better-auth": "1.6.23",
+    "drizzle-orm": "0.45.2",
+    "pg": "8.16.3",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-router": "8.2.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/node": "22.19.7",
+    "@types/pg": "8.15.5",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "drizzle-kit": "0.31.10",
+    "typescript": "5.9.3",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  }
+}

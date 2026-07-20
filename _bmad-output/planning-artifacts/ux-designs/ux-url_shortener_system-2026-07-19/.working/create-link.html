@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create short link — URL Shortener</title>
+  <style>
+    :root {
+      --page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--secondary:#52514e;--muted:#64635f;--border:#e1e0d9;--border-strong:#c3c2b7;--primary:#1c5cab;--primary-hover:#104281;--navy:#0d366b;--soft:#eaf2fc;--warning:#8a5700;--danger:#b42318;--good:#006300;
+      --r-sm:6px;--r-md:8px;--r-lg:12px;--shadow:0 18px 48px rgba(13,54,107,.12),0 2px 8px rgba(13,54,107,.07);
+      font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light;
+    }
+    *{box-sizing:border-box}html{background:var(--page)}body{margin:0;min-width:320px;color:var(--ink);background:var(--page)}button,input,select{font:inherit}button,a{ -webkit-tap-highlight-color:transparent}button{cursor:pointer}:focus-visible{outline:2px solid var(--primary);outline-offset:2px}.skip{position:fixed;top:-80px;left:16px;z-index:99;padding:10px 14px;border-radius:var(--r-sm);background:var(--ink);color:#fff}.skip:focus{top:16px}.shell{min-height:100dvh;display:grid;grid-template-columns:232px minmax(0,1fr)}.sidebar{position:sticky;top:0;height:100dvh;padding:24px 16px;border-right:1px solid var(--border);background:#f4f4f0;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:10px;padding:0 10px 28px;font-weight:720;letter-spacing:-.02em}.mark{width:30px;height:30px;display:grid;place-items:center;border-radius:9px 4px 9px 4px;background:var(--navy);color:#fff}.nav-label{margin:4px 10px 8px;color:var(--muted);font-size:12px;font-weight:650;text-transform:uppercase;letter-spacing:.04em}.nav{display:grid;gap:4px}.nav a{min-height:44px;padding:10px 12px;border-radius:var(--r-md);display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--secondary);font-weight:560}.nav a:hover{background:#ecece7;color:var(--ink)}.nav a[aria-current="page"]{background:var(--navy);color:#fff}.nav svg{width:18px;height:18px;stroke-width:1.8}.main{min-width:0}.topbar{min-height:72px;padding:14px clamp(18px,3vw,40px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:30;background:rgba(249,249,247,.96)}.crumbs{color:var(--muted);font-size:14px}.button{min-height:44px;padding:0 14px;border:1px solid var(--border-strong);border-radius:var(--r-md);display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);color:var(--ink);font-weight:650;text-decoration:none;transition:background-color 160ms,border-color 160ms}.button:hover{background:#f2f2ee;border-color:var(--muted)}.button.primary{border-color:var(--primary);background:var(--primary);color:#fff}.button.primary:hover{background:var(--primary-hover)}.button:disabled{cursor:not-allowed;opacity:.55}.content{max-width:1180px;margin:0 auto;padding:38px clamp(18px,4vw,54px) 64px}.heading{max-width:720px;margin-bottom:30px}.eyebrow{color:var(--primary);font-size:13px;font-weight:720}.heading h1{margin:8px 0 0;font-size:clamp(29px,4vw,44px);line-height:1.08;letter-spacing:-.04em;text-wrap:balance}.heading p{margin:12px 0 0;color:var(--secondary);line-height:1.6}.workspace{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:28px;align-items:start}.form-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg)}.section{padding:26px 28px}.section+.section{border-top:1px solid var(--border)}.section-header{display:flex;align-items:start;justify-content:space-between;gap:20px;margin-bottom:20px}.section-header h2{margin:0;font-size:18px;letter-spacing:-.015em}.section-header p{margin:6px 0 0;color:var(--muted);font-size:13px}.step{flex:none;width:27px;height:27px;border:1px solid var(--border-strong);border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:720;color:var(--navy)}.field{display:grid;gap:7px;margin-top:18px}.field:first-of-type{margin-top:0}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field label,.legend{font-size:14px;font-weight:670}.required{color:var(--danger)}.hint{color:var(--muted);font-size:13px;line-height:1.45}.input-wrap{position:relative}.prefix{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}.input-wrap input{padding-left:110px}input,select{width:100%;min-height:48px;border:1px solid var(--border-strong);border-radius:var(--r-md);background:#fff;color:var(--ink);padding:10px 12px;font-size:16px;transition:border-color 150ms,box-shadow 150ms}input:hover,select:hover{border-color:var(--muted)}input[aria-invalid="true"]{border-color:var(--danger);box-shadow:0 0 0 1px var(--danger)}.error{color:var(--danger);font-size:13px;font-weight:560}.utm-toggle{min-height:44px;width:100%;padding:0;border:0;background:none;color:var(--ink);display:flex;align-items:center;justify-content:space-between;text-align:left;font-weight:680}.utm-toggle span:last-child{color:var(--primary)}.utm-fields{display:grid;gap:16px;margin-top:18px}.warning{display:flex;gap:10px;padding:12px 14px;border-left:3px solid var(--warning);background:#fff7e6;color:#624000;font-size:13px;line-height:1.5}.warning svg{width:18px;height:18px;flex:none;margin-top:1px}.actions{display:flex;justify-content:flex-end;gap:10px;padding:22px 28px;border-top:1px solid var(--border);background:#f7f7f4;border-radius:0 0 var(--r-lg) var(--r-lg)}.preview{position:sticky;top:100px;display:grid;gap:16px}.preview-card{background:var(--navy);color:#fff;border-radius:var(--r-lg);padding:26px;box-shadow:var(--shadow);overflow:hidden}.preview-kicker{color:#b7d3f6;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.preview-url{margin-top:16px;font-size:clamp(22px,3vw,30px);font-weight:740;letter-spacing:-.035em;overflow-wrap:anywhere}.preview-destination{margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2);color:#dbe9f8;font-size:13px;line-height:1.55;overflow-wrap:anywhere}.copy-row{display:flex;gap:8px;margin-top:20px}.copy-row .button{background:#fff;color:var(--navy);border-color:#fff}.preview-note{padding:14px 16px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);color:var(--secondary);font-size:13px;line-height:1.55}.status-dot{display:inline-block;width:8px;height:8px;margin-right:7px;border-radius:50%;background:var(--good)}.success{display:none;padding:16px 18px;border:1px solid #9ac49a;border-radius:var(--r-md);background:#eff8ef;color:#254f25}.success.visible{display:block}.success strong{display:block}.success p{margin:5px 0 0;font-size:14px}.menu{display:none;width:44px;padding:0}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:900px){.workspace{grid-template-columns:1fr}.preview{position:static;order:-1}.preview-card{box-shadow:none}.field-row{grid-template-columns:1fr}}@media(max-width:767px){.shell{display:block}.sidebar{position:fixed;inset:0 auto 0 0;z-index:90;width:min(86vw,300px);transform:translateX(-105%);transition:transform 180ms cubic-bezier(.22,.8,.24,1);box-shadow:var(--shadow)}.sidebar.open{transform:translateX(0)}.menu{display:inline-flex}.topbar{min-height:64px;padding:10px 14px}.crumbs{display:none}.content{padding:25px 16px 44px}.section{padding:22px 18px}.actions{padding:18px;flex-direction:column-reverse}.actions .button{width:100%}.preview-card{padding:22px}.heading{margin-bottom:22px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+  </style>
+</head>
+<body>
+<a class="skip" href="#main">Bỏ qua điều hướng</a>
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Điều hướng chính">
+    <div class="brand"><span class="mark" aria-hidden="true">↗</span><span>Shortwise</span></div>
+    <div class="nav-label">Không gian làm việc</div>
+    <nav class="nav">
+      <a href="dashboard-analytics.html"><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg>Dashboard</a>
+      <a href="#links" aria-current="page"><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></svg>Links</a>
+      <a href="#account"><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"/></svg>Account</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="button menu" id="menuButton" aria-label="Mở điều hướng" aria-controls="sidebar" aria-expanded="false">☰</button>
+      <div class="crumbs">Links / Create short link</div>
+      <a class="button" href="dashboard-analytics.html">Back to links</a>
+    </header>
+    <main class="content" id="main" tabindex="-1">
+      <div class="heading"><div class="eyebrow">New campaign link</div><h1>One destination. A link your campaign can carry.</h1><p>Start with the destination and a readable alias. Add UTM details only when you need attribution.</p></div>
+      <div class="success" id="success" role="status" aria-live="polite"><strong>Short link created.</strong><p>Copy it to share, or open analytics when the campaign starts receiving clicks.</p></div>
+      <div class="workspace">
+        <form class="form-panel" id="linkForm" novalidate>
+          <div class="section">
+            <div class="section-header"><div><h2>Destination and path</h2><p>The short path stays stable if the destination changes later.</p></div><span class="step" aria-hidden="true">1</span></div>
+            <div class="field"><label for="destination">Destination URL <span class="required" aria-hidden="true">*</span></label><input id="destination" name="destination" type="url" inputmode="url" autocomplete="url" value="https://northstar.vn/summer-sale" aria-describedby="destinationHint destinationError" required><div class="hint" id="destinationHint">Use a complete <code>http</code> or <code>https</code> URL.</div><div class="error" id="destinationError" hidden></div></div>
+            <div class="field"><label for="alias">Custom alias</label><div class="input-wrap"><span class="prefix">short.wi/</span><input id="alias" name="alias" type="text" value="summer-sale-email" autocomplete="off" spellcheck="false" aria-describedby="aliasHint aliasError"></div><div class="hint" id="aliasHint">3–64 lowercase letters, numbers or hyphens. Paths cannot be reused after deletion.</div><div class="error" id="aliasError" hidden></div></div>
+          </div>
+          <div class="section">
+            <button class="utm-toggle" type="button" id="utmToggle" aria-expanded="true" aria-controls="utmFields"><span>Campaign attribution</span><span id="utmToggleLabel">Hide UTM fields</span></button>
+            <div class="utm-fields" id="utmFields">
+              <div class="field-row"><div class="field"><label for="source">UTM source</label><input id="source" name="source" value="newsletter" autocomplete="off"></div><div class="field"><label for="medium">UTM medium</label><input id="medium" name="medium" value="email" autocomplete="off"></div></div>
+              <div class="field"><label for="campaign">UTM campaign</label><input id="campaign" name="campaign" value="summer-sale-2026" autocomplete="off"></div>
+              <div class="warning" id="utmWarning" hidden><svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 4.3 2.6 18a2 2 0 0 0 1.8 3h15.2a2 2 0 0 0 1.8-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg><span>Uppercase or spaces can split campaign reports. You can continue, or edit the value.</span></div>
+            </div>
+          </div>
+          <div class="actions"><a class="button" href="dashboard-analytics.html">Cancel</a><button class="button primary" id="submitButton" type="submit">Create short link</button></div>
+        </form>
+        <aside class="preview" aria-label="Link preview">
+          <div class="preview-card"><div class="preview-kicker">Live preview</div><div class="preview-url" id="shortPreview">short.wi/summer-sale-email</div><div class="preview-destination" id="destinationPreview">https://northstar.vn/summer-sale?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=summer-sale-2026</div><div class="copy-row"><button class="button" type="button" id="copyButton">Copy preview</button></div></div>
+          <div class="preview-note"><span class="status-dot" aria-hidden="true"></span><strong>Ready to redirect.</strong><br>Analytics may take up to 60 seconds to appear after a valid click.</div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  const qs = (selector) => document.querySelector(selector);
+  const form = qs('#linkForm');
+  const destination = qs('#destination');
+  const alias = qs('#alias');
+  const utmInputs = [qs('#source'), qs('#medium'), qs('#campaign')];
+  const destinationError = qs('#destinationError');
+  const aliasError = qs('#aliasError');
+  const shortPreview = qs('#shortPreview');
+  const destinationPreview = qs('#destinationPreview');
+  const warning = qs('#utmWarning');
+
+  function finalUrl() {
+    try {
+      const url = new URL(destination.value);
+      const keys = ['utm_source', 'utm_medium', 'utm_campaign'];
+      utmInputs.forEach((input, index) => input.value.trim() ? url.searchParams.set(keys[index], input.value.trim()) : url.searchParams.delete(keys[index]));
+      return url.toString();
+    } catch { return destination.value || 'Enter a valid destination'; }
+  }
+  function updatePreview() {
+    const normalized = alias.value.toLowerCase().trim();
+    shortPreview.textContent = `short.wi/${normalized || 'generated-code'}`;
+    destinationPreview.textContent = finalUrl();
+    warning.hidden = !utmInputs.some((input) => /[A-Z]|\s/.test(input.value));
+  }
+  [destination, alias, ...utmInputs].forEach((input) => input.addEventListener('input', updatePreview));
+  alias.addEventListener('blur', () => { alias.value = alias.value.toLowerCase().trim(); updatePreview(); });
+
+  qs('#utmToggle').addEventListener('click', () => {
+    const fields = qs('#utmFields');
+    const expanded = qs('#utmToggle').getAttribute('aria-expanded') === 'true';
+    qs('#utmToggle').setAttribute('aria-expanded', String(!expanded));
+    fields.hidden = expanded;
+    qs('#utmToggleLabel').textContent = expanded ? 'Show UTM fields' : 'Hide UTM fields';
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    let valid = true;
+    destinationError.hidden = true;
+    aliasError.hidden = true;
+    try { const url = new URL(destination.value); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); destination.removeAttribute('aria-invalid'); }
+    catch { valid = false; destination.setAttribute('aria-invalid', 'true'); destinationError.textContent = 'Use a complete http or https URL.'; destinationError.hidden = false; }
+    if (alias.value && !/^[a-z0-9](?:[a-z0-9-]{1,62}[a-z0-9])$/.test(alias.value)) { valid = false; alias.setAttribute('aria-invalid', 'true'); aliasError.textContent = 'Use 3–64 lowercase letters, numbers or hyphens; do not start or end with a hyphen.'; aliasError.hidden = false; } else alias.removeAttribute('aria-invalid');
+    if (!valid) { (destination.getAttribute('aria-invalid') ? destination : alias).focus(); return; }
+    const button = qs('#submitButton'); button.disabled = true; button.textContent = 'Creating…';
+    setTimeout(() => { button.disabled = false; button.textContent = 'Create short link'; qs('#success').classList.add('visible'); qs('#success').scrollIntoView({block:'nearest'}); }, 700);
+  });
+
+  qs('#copyButton').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(shortPreview.textContent); qs('#copyButton').textContent = 'Copied'; setTimeout(() => qs('#copyButton').textContent = 'Copy preview', 1400); }
+    catch { qs('#copyButton').textContent = 'Select and copy'; }
+  });
+  qs('#menuButton').addEventListener('click', () => { const sidebar = qs('#sidebar'); const open = sidebar.classList.toggle('open'); qs('#menuButton').setAttribute('aria-expanded', String(open)); });
+  updatePreview();
+</script>
+</body>
+</html>
