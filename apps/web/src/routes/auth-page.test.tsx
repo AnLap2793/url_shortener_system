@@ -14,6 +14,7 @@ describe("public auth shell", () => {
     expect(html).toContain("<main");
     expect(html).toContain("<h1");
     expect(html).toContain('href="/sign-up"');
+    expect(html).toContain('aria-live="polite"');
     expect(html).not.toContain("<form");
     expect(html).not.toContain("<button");
     expect(html).not.toContain('type="password"');

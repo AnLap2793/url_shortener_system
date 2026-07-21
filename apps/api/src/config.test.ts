@@ -13,6 +13,16 @@ describe("API configuration", () => {
       loadConfig({ NODE_ENV: "production", DATABASE_URL: "postgres://" }),
     ).toThrow("DATABASE_URL must be a valid PostgreSQL URL");
     expect(() =>
+      loadConfig({ NODE_ENV: "production", DATABASE_URL: "postgres://localhost/db?port=abc" }),
+    ).toThrow("DATABASE_URL must be a valid PostgreSQL URL");
+    expect(() =>
+      loadConfig({ NODE_ENV: "production", DATABASE_URL: "postgres://localhost/db?host=elsewhere" }),
+    ).toThrow("DATABASE_URL must be a valid PostgreSQL URL");
+    expect(() =>
+      loadConfig({ NODE_ENV: "production", DATABASE_URL: "postgres://localhost/db?query_timeout=0" }),
+    ).toThrow("DATABASE_URL must be a valid PostgreSQL URL");
+    expect(loadConfig({ DATABASE_URL: "postgresql://localhost/db" }).databaseUrl).toBe("postgresql://localhost/db");
+    expect(() =>
       loadConfig({
         NODE_ENV: "production",
         DATABASE_URL: "sentinel-malformed",

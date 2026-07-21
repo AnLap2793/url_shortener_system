@@ -18,7 +18,10 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "build:packages": "npm run build --workspace=@url-shortener/application --workspace=@url-shortener/domain --workspace=@url-shortener/db --workspace=@url-shortener/contracts --workspace=@url-shortener/observability",
+    "pretypecheck": "npm run build:packages",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "pretest": "npm run build --workspaces --if-present",
     "test": "vitest run",
     "test:architecture": "node tests/architecture-boundaries.test.js",
     "test:e2e": "playwright test",

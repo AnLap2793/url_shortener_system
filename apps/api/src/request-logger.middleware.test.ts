@@ -29,4 +29,17 @@ describe("request logger", () => {
     expect(write.mock.calls[0]?.[0]).not.toContain("sentinel-query");
     write.mockRestore();
   });
+
+  it("uses a safe fallback for malformed request targets", () => {
+    let finish = () => {};
+    const write = vi.spyOn(console, "log").mockImplementation(() => {});
+    new RequestLoggerMiddleware().use(
+      { method: "GET", url: "http://[" },
+      { statusCode: 400, setHeader: vi.fn(), once: (_, listener) => { finish = listener; } },
+      vi.fn(),
+    );
+    expect(() => finish()).not.toThrow();
+    expect(write).toHaveBeenCalledWith(expect.stringContaining('"path":"[INVALID_REQUEST_TARGET]"'));
+    write.mockRestore();
+  });
 });

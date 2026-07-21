@@ -1,9 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { ReadinessProbe } from "@url-shortener/application";
+import { READINESS_PROBE } from "../tokens.js";
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly readinessProbe: ReadinessProbe) {}
+  constructor(@Inject(READINESS_PROBE) private readonly readinessProbe: ReadinessProbe) {}
 
   live() {
     return { status: "ok" as const };

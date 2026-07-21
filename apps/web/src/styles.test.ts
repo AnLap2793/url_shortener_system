@@ -26,6 +26,7 @@ describe("auth shell design tokens", () => {
   it("retains DESIGN primary and uses an AA text-link color", async () => {
     const css = await readFile("apps/web/src/styles.css", "utf8");
     expect(css).toContain("--primary: #1c5cab");
+    expect(css).toContain("a {\n  color: var(--interactive-text)");
     expect(contrast("0d4f99", "fcfcfb")).toBeGreaterThanOrEqual(4.5);
     expect(contrast("0b0b0b", "fcfcfb")).toBeGreaterThanOrEqual(4.5);
   });

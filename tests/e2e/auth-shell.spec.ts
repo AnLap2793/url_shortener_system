@@ -40,5 +40,10 @@ for (const route of ["/sign-in", "/sign-up"]) {
     ).toBe("2px");
     await page.keyboard.press("Enter");
     await expect(page.locator("main")).toBeFocused();
+    const routeLink = page.locator(".route-link");
+    await routeLink.focus();
+    await routeLink.press("Enter");
+    await expect(page.locator("h1")).toBeFocused();
+    await expect(page.locator('[aria-live="polite"]')).toContainText("page loaded");
   });
 }

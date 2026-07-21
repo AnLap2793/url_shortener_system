@@ -95,19 +95,34 @@ so that account and campaign features have a stable starting point.
 
 ### Review Findings
 
-- [ ] [Review][Patch] Readiness requests can wait unbounded behind the single pool connection [apps/api/src/app.module.ts:8]
-- [ ] [Review][Patch] Readiness query can hang after connection succeeds because no client-side query deadline exists [packages/db/src/index.ts:17]
-- [ ] [Review][Patch] Readiness pool is not closed through Nest shutdown lifecycle [apps/api/src/app.module.ts:8]
-- [ ] [Review][Patch] HealthService bypasses the published readiness DI token [apps/api/src/app.module.ts:14]
-- [ ] [Review][Patch] API configuration is loaded twice during bootstrap [apps/api/src/app.module.ts:7]
-- [ ] [Review][Patch] Reserved-route registry is inert and cannot enforce route collision policy [apps/web/src/routes/reserved-routes.ts:1]
-- [ ] [Review][Patch] Link color uses an off-spec token instead of DESIGN primary [apps/web/src/styles.css:13]
-- [ ] [Review][Patch] SPA route changes are not announced to assistive technology [apps/web/src/routes/auth-page.tsx:11]
-- [ ] [Review][Patch] Health contract lacks automated HTTP-level regression coverage [apps/api/src/health/health.test.ts:4]
-- [ ] [Review][Patch] Worker shutdown has no explicit bounded cleanup contract [apps/worker/src/main.ts:5]
-- [ ] [Review][Patch] DATABASE_URL accepts invalid PostgreSQL connection parameters instead of failing startup [apps/api/src/config.ts:10]
-- [ ] [Review][Patch] Malformed request targets can throw asynchronously in request logging [apps/api/src/request-logger.middleware.ts:22]
-- [ ] [Review][Patch] SPA navigation leaves focus on a control whose meaning changed [apps/web/src/routes/auth-page.tsx:29]
+- [x] [Review][Patch] Readiness requests can wait unbounded behind the single pool connection [apps/api/src/app.module.ts:8]
+- [x] [Review][Patch] Readiness query can hang after connection succeeds because no client-side query deadline exists [packages/db/src/index.ts:17]
+- [x] [Review][Patch] Readiness pool is not closed through Nest shutdown lifecycle [apps/api/src/app.module.ts:8]
+- [x] [Review][Patch] HealthService bypasses the published readiness DI token [apps/api/src/app.module.ts:14]
+- [x] [Review][Patch] API configuration is loaded twice during bootstrap [apps/api/src/app.module.ts:7]
+- [x] [Review][Patch] Reserved-route registry is inert and cannot enforce route collision policy [apps/web/src/routes/reserved-routes.ts:1]
+- [x] [Review][Patch] Link color uses an off-spec token instead of DESIGN primary [apps/web/src/styles.css:13]
+- [x] [Review][Patch] SPA route changes are not announced to assistive technology [apps/web/src/routes/auth-page.tsx:11]
+- [x] [Review][Patch] Health contract lacks automated HTTP-level regression coverage [apps/api/src/health/health.test.ts:4]
+- [x] [Review][Patch] Worker shutdown has no explicit bounded cleanup contract [apps/worker/src/main.ts:5]
+- [x] [Review][Patch] DATABASE_URL accepts invalid PostgreSQL connection parameters instead of failing startup [apps/api/src/config.ts:10]
+- [x] [Review][Patch] Malformed request targets can throw asynchronously in request logging [apps/api/src/request-logger.middleware.ts:22]
+- [x] [Review][Patch] SPA navigation leaves focus on a control whose meaning changed [apps/web/src/routes/auth-page.tsx:29]
+
+#### Packages Review Findings
+
+- [x] [Review][Patch] Clean checkout cannot run tests because package runtime exports require missing `dist` files; source types can diverge from stale runtime builds [packages/application/package.json:6]
+- [x] [Review][Patch] Architecture checker permits relative-path and incomplete-allowlist bypasses across domain/application/db/web boundaries [tests/architecture-boundaries.test.js:8]
+- [x] [Review][Patch] Readiness deadlines can be disabled by URL overrides or non-positive timeout values and lack a deterministic stalled-server regression [packages/db/src/index.ts:7]
+- [x] [Review][Patch] Idle PostgreSQL connection errors have no pool listener and can terminate the API process [packages/db/src/index.ts:8]
+- [x] [Review][Patch] Concurrent or repeated readiness close calls reject instead of sharing one close operation [packages/db/src/index.ts:31]
+- [x] [Review][Patch] Reserved-route policy handles exact routes only and omits `/api/*`, `/api/auth/*` and immutable `/assets/*` prefixes [packages/application/src/reserved-routes.ts:1]
+- [x] [Review][Patch] Logger serializer can throw on circular objects, BigInt and throwing getters [packages/observability/src/index.ts:5]
+- [x] [Review][Patch] Logger drops useful safe diagnostics from Error, Date, Map and Set values [packages/observability/src/index.ts:7]
+- [x] [Review][Patch] Caller fields can overwrite canonical log level and message [packages/observability/src/index.ts:19]
+- [x] [Review][Patch] Secrets in free-form messages and generic string values bypass key-based redaction [packages/observability/src/index.ts:3]
+- [x] [Review][Patch] Sensitive-key substring matching redacts benign fields such as description and subscription [packages/observability/src/index.ts:3]
+- [x] [Review][Patch] Production readiness failures emit no sanitized operational failure category [packages/db/src/index.ts:22]
 
 ## Dev Notes
 
@@ -185,6 +200,10 @@ so that account and campaign features have a stable starting point.
 - Validation passed: clean `npm ci --ignore-scripts --dry-run`, `npm run check`, `npm run test:e2e`, degraded health smoke and `git diff --check`.
 - Review fixes applied: synchronized lockfile, validated complete PostgreSQL URLs, blocked re-export/DB boundary bypasses, recursively redacted nested secrets and restored skip-link-first focus order.
 - Local checks ran on Node 22.16.0 with expected engine warnings; CI and `.node-version` pin required Node 22.22.0.
+- Resolved 13 Apps review findings: bounded/coalesced readiness, lifecycle-aware pool cleanup, DI/config ownership, shared reserved-route registry, route announcement/focus, HTTP health regression, bounded worker cleanup, strict connection URL validation and defensive request logging.
+- Post-review validation: 20 tests passed, 1 optional PostgreSQL integration skipped, architecture/build passed, Playwright 2/2 passed, clean-install dry-run passed.
+- Resolved 12 Packages review findings: deterministic clean-build exports, canonical architecture allowlists, bounded/idempotent PostgreSQL probing with idle-error handling, segment-aware reserved prefixes, safe bounded logger serialization and sanitized readiness failure categories.
+- Package post-review validation: clean checkout build order passed, 25 tests passed, 1 optional PostgreSQL integration skipped, architecture/build passed, Playwright 2/2 passed, clean-install dry-run passed.
 
 ### File List
 
@@ -198,3 +217,5 @@ so that account and campaign features have a stable starting point.
 ## Change Log
 
 - 2026-07-20: Implemented Story 1.1 foundation and verification gates.
+- 2026-07-20: Addressed Apps code-review findings — 13 patches resolved.
+- 2026-07-20: Addressed Packages code-review findings — 12 patches resolved.
