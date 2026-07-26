@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 const routes = ["/sign-in", "/sign-up"] as const;
-const viewports = [{ width: 320, height: 720 }, { width: 1280, height: 800 }];
+const viewports = [
+  { width: 320, height: 720 },
+  { width: 375, height: 720 },
+  { width: 800, height: 800 },
+  { width: 1280, height: 800 },
+];
 
 for (const route of routes) {
   for (const viewport of viewports) {

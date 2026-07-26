@@ -24,4 +24,10 @@ describe("web artifact safety", () => {
     expect(artifact.content).not.toContain("private-build-sentinel");
     expect(artifact.content).not.toContain(".env");
   });
+
+  it("keeps the test-only component harness out of the production dist", async () => {
+    const artifact = await readTree("apps/web/dist");
+    expect(artifact.files.some((file) => file.includes("harness"))).toBe(false);
+    expect(artifact.content).not.toContain("component-harness");
+  });
 });
