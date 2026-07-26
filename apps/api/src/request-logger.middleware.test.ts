@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+afterEach(() => vi.restoreAllMocks());
 import { RequestLoggerMiddleware } from "./request-logger.middleware.js";
 
 describe("request logger", () => {
