@@ -4,5 +4,12 @@
   "private": true,
   "type": "module",
   "dependencies": { "@url-shortener/contracts": "0.0.0", "react": "19.2.7", "react-dom": "19.2.7", "react-router": "8.2.0" },
-  "scripts": { "build": "vite build", "typecheck": "tsc -p tsconfig.json --noEmit", "dev": "vite", "preview": "vite preview" }
+  "scripts": {
+    "build": "vite build",
+    "build:harness": "vite build --config vite.harness.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "vite",
+    "preview": "vite preview",
+    "preview:harness": "vite preview --config vite.harness.config.ts"
+  }
 }

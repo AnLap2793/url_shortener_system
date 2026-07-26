@@ -30,4 +30,31 @@ describe("auth shell design tokens", () => {
     expect(contrast("0d4f99", "fcfcfb")).toBeGreaterThanOrEqual(4.5);
     expect(contrast("0b0b0b", "fcfcfb")).toBeGreaterThanOrEqual(4.5);
   });
+
+  it("declares the DESIGN foundation tokens for shared components", async () => {
+    const css = await readFile("apps/web/src/styles.css", "utf8");
+    for (const declaration of [
+      "--accent: #0d366b",
+      "--success: #006300",
+      "--warning: #8a5700",
+      "--danger: #b42318",
+      "--ink-secondary: #52514e",
+      "--ink-muted: #64635f",
+      "--radius-lg: 12px",
+      "--space-card: 24px",
+      "--space-section: 32px",
+    ]) {
+      expect(css).toContain(declaration);
+    }
+    expect(css).toMatch(/\.focus-indicator:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--primary\)/);
+  });
+
+  it("keeps token pairings at AA contrast for their real usage", async () => {
+    expect(contrast("ffffff", "0d366b"), "active nav text on accent").toBeGreaterThanOrEqual(4.5);
+    expect(contrast("ffffff", "1c5cab"), "primary button text").toBeGreaterThanOrEqual(4.5);
+    expect(contrast("52514e", "fcfcfb"), "secondary ink on surface").toBeGreaterThanOrEqual(4.5);
+    expect(contrast("b42318", "fcfcfb"), "danger text on surface").toBeGreaterThanOrEqual(4.5);
+    expect(contrast("006300", "fcfcfb"), "success text on surface").toBeGreaterThanOrEqual(4.5);
+    expect(contrast("8a5700", "fcfcfb"), "warning text on surface").toBeGreaterThanOrEqual(4.5);
+  });
 });
