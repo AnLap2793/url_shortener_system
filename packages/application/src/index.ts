@@ -3,4 +3,12 @@ export interface ReadinessProbe {
   close(): Promise<void>;
 }
 
-export { isReservedApplicationRoute, reservedExactRoutes, reservedRoutePrefixes } from "./reserved-routes.js";
+export {
+  applicationBrowserRoutes,
+  controllerOwnedExactRoutes,
+  controllerOwnedPrefixes,
+  isControllerOwnedRoute,
+  isReservedApplicationRoute,
+  reservedExactRoutes,
+  reservedRoutePrefixes,
+} from "./reserved-routes.js";

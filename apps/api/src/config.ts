@@ -1,6 +1,11 @@
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+
 export interface ApiConfig {
   databaseUrl: string;
   port: number;
+  /** Absolute path to the built SPA; static hosting is disabled when absent. */
+  webDistDir?: string;
 }
 
 const unsupportedConnectionOverrides = new Set([
@@ -36,5 +41,13 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
 
   const port = Number(environment.PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid TCP port");
-  return { databaseUrl: databaseUrl!, port };
+
+  let webDistDir: string | undefined;
+  if (environment.WEB_DIST_DIR) {
+    webDistDir = resolve(environment.WEB_DIST_DIR);
+    if (!existsSync(join(webDistDir, "index.html"))) {
+      throw new Error("WEB_DIST_DIR must point to a directory containing index.html");
+    }
+  }
+  return { databaseUrl: databaseUrl!, port, webDistDir };
 }
