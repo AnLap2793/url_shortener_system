@@ -4,7 +4,7 @@ baseline_commit: 4eb70ab92094310d026686c0352370c27b9c806d
 
 # Story 1.1: Khởi tạo secure application shell
 
-Status: review
+Status: done
 
 ## Story
 
@@ -124,6 +124,33 @@ so that account and campaign features have a stable starting point.
 - [x] [Review][Patch] Sensitive-key substring matching redacts benign fields such as description and subscription [packages/observability/src/index.ts:3]
 - [x] [Review][Patch] Production readiness failures emit no sanitized operational failure category [packages/db/src/index.ts:22]
 
+#### Tests and CI Review Findings
+
+- [x] [Review][Patch] CSS token assertion is CRLF-sensitive and fails required checks on Windows [apps/web/src/styles.test.ts:28]
+- [x] [Review][Patch] Artifact-safety test passes when build output is missing and never injects the sentinel it claims to scan [tests/artifact-safety.test.ts:4]
+- [x] [Review][Patch] CI always skips the real PostgreSQL integration path [`.github/workflows/ci.yml:7`]
+- [x] [Review][Patch] Architecture gate fails open for missing roots and omits API, contracts and observability workspace policies [tests/architecture-boundaries.test.js:8]
+- [x] [Review][Patch] Architecture parser/package graph checks miss valid ESM forms, manifest dependencies and worker-controller regression fixtures [tests/architecture-boundaries.test.js:5]
+- [x] [Review][Patch] Bounded readiness tests prove connection refusal only, not stalled handshake/query deadlines [packages/db/src/readiness-probe.test.ts:9]
+- [x] [Review][Patch] API fail-fast, process survival and sanitized logs lack process-level regression evidence [apps/api/src/health/health-http.test.ts:9]
+- [x] [Review][Patch] UX E2E evidence omits desktop/400%-equivalent reflow, full text spacing, network silence and computed focus/contrast checks [tests/e2e/auth-shell.spec.ts:3]
+- [x] [Review][Patch] Toolchain tests do not enforce CI Node/npm or every direct exact dependency [tests/toolchain.test.ts:3]
+- [x] [Review][Patch] Root workspace scripts can recurse and are not topologically/independently runnable [package.json:19]
+- [x] [Review][Patch] Playwright permits `test.only` and its server relies on prior package build artifacts [playwright.config.ts:2]
+- [x] [Review][Patch] CI duplicates uncancelled branch/PR jobs and lacks minimum permissions/credential hardening [`.github/workflows/ci.yml:2`]
+- [x] [Review][Patch] Mutable GitHub Action tags execute unpinned third-party workflow code [`.github/workflows/ci.yml:10`]
+- [x] [Review][Patch] Console spies leak into later tests if assertions fail [apps/api/src/request-logger.middleware.test.ts:4]
+- [x] [Review][Patch] Reserved-route test derives expected values from implementation and cannot detect deleted required routes [tests/reserved-routes.test.ts:1]
+
+#### Lockfile Review Findings
+
+- [x] [Review][Decision] Local `npm install` executes dependency install scripts while CI is protected by `--ignore-scripts` — resolved: dismissed by user decision; CI is the mandatory gate and blocks scripts, the only script-bearing packages are well-known (esbuild/fsevents), and `.npmrc` `ignore-scripts=true` would break required `pretest`/`pretypecheck` hooks
+- [x] [Review][Patch] CI lacks registry provenance verification (`npm audit signatures`) after `npm ci` [`.github/workflows/ci.yml:45`]
+- [x] [Review][Patch] npm major version unenforced locally — npm 11.x can silently rewrite lockfileVersion 3; add `engines.npm` guard and toolchain test assertion [package.json:6]
+- [x] [Review][Defer] drizzle-kit 0.31.10 drags deprecated `@esbuild-kit/*` and three esbuild versions (~70 platform artifacts) into the tree [package-lock.json] — deferred, upstream dependency chain
+- [x] [Review][Defer] `npm ci --omit=dev` still installs the full vite/vitest/drizzle-kit toolchain because better-auth's optional peers mark 56 entries `devOptional` [package-lock.json] — deferred, revisit when a production deploy pipeline is defined
+- [x] [Review][Defer] `npm ci --omit=optional` succeeds but strips esbuild/rolldown/lightningcss native binaries with no guard, breaking builds later [package-lock.json] — deferred, install mode unused by repo/CI
+
 ## Dev Notes
 
 ### Greenfield and file ownership
@@ -204,6 +231,8 @@ so that account and campaign features have a stable starting point.
 - Post-review validation: 20 tests passed, 1 optional PostgreSQL integration skipped, architecture/build passed, Playwright 2/2 passed, clean-install dry-run passed.
 - Resolved 12 Packages review findings: deterministic clean-build exports, canonical architecture allowlists, bounded/idempotent PostgreSQL probing with idle-error handling, segment-aware reserved prefixes, safe bounded logger serialization and sanitized readiness failure categories.
 - Package post-review validation: clean checkout build order passed, 25 tests passed, 1 optional PostgreSQL integration skipped, architecture/build passed, Playwright 2/2 passed, clean-install dry-run passed.
+- Resolved 15 Tests/config/CI findings: portable tests, non-vacuous artifact scan, PostgreSQL CI service, TypeScript AST architecture enforcement, process-level API checks, expanded UX E2E, exact toolchain verification, independent topological scripts, CI concurrency/permissions and immutable action pins.
+- Tests/config/CI post-review validation: 38 tests passed, 1 optional local PostgreSQL integration skipped (mandatory in CI), architecture/build passed, Playwright 4/4 passed, clean-install dry-run passed.
 
 ### File List
 
@@ -219,3 +248,5 @@ so that account and campaign features have a stable starting point.
 - 2026-07-20: Implemented Story 1.1 foundation and verification gates.
 - 2026-07-20: Addressed Apps code-review findings — 13 patches resolved.
 - 2026-07-20: Addressed Packages code-review findings — 12 patches resolved.
+- 2026-07-22: Addressed Tests/config/CI code-review findings — 15 patches resolved.
+- 2026-07-26: Addressed Lockfile code-review findings — 2 patches resolved (`npm audit signatures` in CI, `engines.npm` guard), 3 deferred to deferred-work.md, 1 decision dismissed. Review complete across all 4 chunks; story done.
