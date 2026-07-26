@@ -2,18 +2,48 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: url_shortener_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test -d url_shortener_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      CI: true
+      INTEGRATION_DATABASE_URL: postgres://test:test@127.0.0.1:5432/url_shortener_test
+      STORY_TEST_PRIVATE_SENTINEL: private-build-sentinel
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          node-version: 22.22.0
+          persist-credentials: false
+      - uses: actions/setup-node@1e60f620b9541d7c243dff7f220fb17de8ec3dc
+        with:
+          node-version-file: .node-version
           cache: npm
+      - run: npm install --global npm@10.9.4
       - run: npm ci --ignore-scripts
+      - run: npm audit signatures
       - run: npm run check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

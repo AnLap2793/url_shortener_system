@@ -4,7 +4,8 @@
   "type": "module",
   "packageManager": "npm@10.9.4",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=22.22.0",
+    "npm": ">=10.9.4 <11"
   },
   "workspaces": [
     "packages/application",
@@ -17,15 +18,19 @@
     "apps/worker"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "build:packages": "npm run build --workspace=@url-shortener/application --workspace=@url-shortener/domain --workspace=@url-shortener/db --workspace=@url-shortener/contracts --workspace=@url-shortener/observability",
+    "build": "npm run build:all",
+    "build:packages": "npm run build --workspace=@url-shortener/domain && npm run build --workspace=@url-shortener/application && npm run build --workspace=@url-shortener/db && npm run build --workspace=@url-shortener/contracts && npm run build --workspace=@url-shortener/observability",
+    "build:apps": "npm run build --workspace=@url-shortener/web && npm run build --workspace=@url-shortener/api && npm run build --workspace=@url-shortener/worker",
+    "build:all": "npm run build:packages && npm run build:apps",
     "pretypecheck": "npm run build:packages",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "pretest": "npm run build --workspaces --if-present",
+    "pretest": "node tests/build-with-sentinel.js",
     "test": "vitest run",
     "test:architecture": "node tests/architecture-boundaries.test.js",
     "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm test && npm run test:architecture && npm run build"
+    "verify:toolchain": "node tests/verify-toolchain.js",
+    "test:unit": "vitest run",
+    "check": "npm run verify:toolchain && npm run typecheck && npm test && npm run test:architecture && npm run build"
   },
   "dependencies": {
     "@nestjs/common": "11.1.28",
