@@ -43,3 +43,7 @@ export class PgReadinessProbe implements ReadinessProbe {
     return this.#closePromise ??= this.#pool.end();
   }
 }
+
+export { createDb, type DbHandle } from "./create-db.js";
+export { runMigrations } from "./migrate.js";
+export * as authSchema from "./schema/auth-schema.js";

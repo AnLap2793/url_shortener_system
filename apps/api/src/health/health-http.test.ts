@@ -8,7 +8,7 @@ afterEach(async () => close?.());
 describe("HTTP health contract", () => {
   it("serves exact degraded health responses and headers", async () => {
     const app = await NestFactory.create(
-      AppModule.register({ databaseUrl: "postgres://invalid:secret@127.0.0.1:1/test", port: 0 }),
+      AppModule.register({ databaseUrl: "postgres://invalid:secret@127.0.0.1:1/test", port: 0, betterAuthSecret: "test-secret-0123456789abcdef-0123456789", publicOrigin: "http://127.0.0.1:0" }),
       { logger: false },
     );
     await app.listen(0, "127.0.0.1");

@@ -5,9 +5,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+const testSecret = "test-secret-0123456789abcdef-0123456789";
+
 function runApi(environment: Record<string, string>) {
   return spawn(process.execPath, ["apps/api/dist/main.js"], {
-    env: { ...process.env, ...environment },
+    env: { ...process.env, BETTER_AUTH_SECRET: testSecret, ...environment },
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
@@ -69,6 +71,25 @@ describe("API process boundaries", () => {
       child.kill("SIGTERM");
       await once(child, "exit");
     }
+  });
+
+  it("fails fast without BETTER_AUTH_SECRET", async () => {
+    const environment = {
+      ...process.env,
+      DATABASE_URL: "postgres://invalid:secret@127.0.0.1:1/test",
+      PORT: "3195",
+    };
+    delete environment.BETTER_AUTH_SECRET;
+    const child = spawn(process.execPath, ["apps/api/dist/main.js"], {
+      env: environment,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let output = "";
+    child.stdout.on("data", (chunk) => { output += chunk; });
+    child.stderr.on("data", (chunk) => { output += chunk; });
+    const [code] = await once(child, "exit");
+    expect(code).not.toBe(0);
+    expect(output).toContain("BETTER_AUTH_SECRET");
   });
 
   it("fails fast for an invalid WEB_DIST_DIR without leaking its value", async () => {

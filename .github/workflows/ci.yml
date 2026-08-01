@@ -33,6 +33,9 @@ jobs:
       CI: true
       INTEGRATION_DATABASE_URL: postgres://test:test@127.0.0.1:5432/url_shortener_test
       STORY_TEST_PRIVATE_SENTINEL: private-build-sentinel
+      # Fixed test-only value for spawned API processes; not a real secret.
+      BETTER_AUTH_SECRET: test-secret-for-ci-0123456789abcdef
+      PUBLIC_ORIGIN: http://127.0.0.1:4173
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -45,5 +48,6 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm audit signatures
       - run: npm run check
+      - run: npm run verify:contracts
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

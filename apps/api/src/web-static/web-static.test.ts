@@ -26,6 +26,8 @@ function rawGet(baseUrl: string, path: string): Promise<{ status: number; body: 
 }
 
 const databaseUrl = "postgres://invalid:secret@127.0.0.1:1/test";
+const betterAuthSecret = "test-secret-0123456789abcdef-0123456789";
+const publicOrigin = "http://127.0.0.1:0";
 let workspace: string;
 let distDir: string;
 
@@ -57,7 +59,7 @@ async function startApi(config: ApiConfig): Promise<string> {
 
 describe("same-origin web static hosting", () => {
   it("serves SPA fallback for deep browser routes without 404", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     for (const path of ["/sign-in", "/sign-up", "/dashboard", "/links", "/account", "/links/deep/refresh"]) {
       const response = await fetch(`${baseUrl}${path}`, { headers: { accept: "text/html,*/*" } });
       expect(response.status, path).toBe(200);
@@ -69,14 +71,14 @@ describe("same-origin web static hosting", () => {
   });
 
   it("supports HEAD fallback requests with empty body", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     const response = await fetch(`${baseUrl}/dashboard`, { method: "HEAD", headers: { accept: "text/html" } });
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("");
   });
 
   it("serves hashed assets with immutable caching and exact content types", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     const script = await fetch(`${baseUrl}/assets/app-abc123.js`);
     expect(script.status).toBe(200);
     expect(script.headers.get("content-type")).toBe("text/javascript; charset=utf-8");
@@ -89,7 +91,7 @@ describe("same-origin web static hosting", () => {
   });
 
   it("keeps reserved API and health routes owned by controllers", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     const live = await fetch(`${baseUrl}/health/live`, { headers: { accept: "text/html" } });
     expect(live.status).toBe(200);
     expect(await live.json()).toEqual({ status: "ok" });
@@ -100,7 +102,7 @@ describe("same-origin web static hosting", () => {
   });
 
   it("never serves files outside the dist root", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     for (const path of [
       "/assets/..%2foutside-secret.txt",
       "/assets/..%2f..%2foutside-secret.txt",
@@ -114,7 +116,7 @@ describe("same-origin web static hosting", () => {
   });
 
   it("never lets encoded traversal reach dist-root files through the immutable assets namespace", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     for (const path of [
       "/assets/..%2findex.html",
       "/assets/%2e%2e/index.html",
@@ -134,9 +136,11 @@ describe("same-origin web static hosting", () => {
   });
 
   it("normalizes case and trailing slashes so controller routes never receive the SPA", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
+    // Module-only boot (no Better Auth express mount): the point is that a
+    // case-variant controller-owned path gets the API 404, never the SPA.
     const session = await fetch(`${baseUrl}/Api/auth/session`, { headers: { accept: "text/html" } });
-    expect(session.status).toBe(401);
+    expect(session.status).toBe(404);
     expect(session.headers.get("content-type")).not.toMatch(/text\/html/);
 
     const live = await fetch(`${baseUrl}/health/live/`, { headers: { accept: "text/html" } });
@@ -149,7 +153,7 @@ describe("same-origin web static hosting", () => {
   });
 
   it("does not fall back for non-HTML accept headers", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     // Intended contract: the SPA document is only for clients that ask for
     // HTML; */* or JSON-only clients (curl, monitors, bots) get the API 404.
     for (const accept of ["application/json", "*/*"]) {
@@ -160,13 +164,13 @@ describe("same-origin web static hosting", () => {
   });
 
   it("marks fallback responses as varying on Accept", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0, webDistDir: distDir });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin, webDistDir: distDir });
     const response = await fetch(`${baseUrl}/dashboard`, { headers: { accept: "text/html" } });
     expect(response.headers.get("vary")).toContain("Accept");
   });
 
   it("preserves API-only behavior when WEB_DIST_DIR is not configured", async () => {
-    const baseUrl = await startApi({ databaseUrl, port: 0 });
+    const baseUrl = await startApi({ databaseUrl, port: 0, betterAuthSecret, publicOrigin });
     const response = await fetch(`${baseUrl}/dashboard`, { headers: { accept: "text/html" } });
     expect(response.status).toBe(404);
     const live = await fetch(`${baseUrl}/health/live`);

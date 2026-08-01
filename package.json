@@ -29,8 +29,10 @@
     "test:architecture": "node tests/architecture-boundaries.test.js",
     "test:e2e": "playwright test",
     "verify:toolchain": "node tests/verify-toolchain.js",
+    "generate:contracts": "npm run build:packages && npm run build --workspace=@url-shortener/api && node apps/api/dist/openapi/generate-openapi.js && openapi-typescript packages/contracts/openapi.json -o packages/contracts/src/generated/api-types.ts",
+    "verify:contracts": "npm run generate:contracts && git diff --exit-code -- packages/contracts/openapi.json packages/contracts/src/generated && node tests/verify-generated-artifacts-tracked.js",
     "test:unit": "vitest run",
-    "check": "npm run verify:toolchain && npm run typecheck && npm test && npm run test:architecture && npm run build"
+    "check": "npm run verify:toolchain && npm run typecheck && npm test && npm run test:architecture && npm run build && npm run verify:contracts"
   },
   "dependencies": {
     "@nestjs/common": "11.1.28",
@@ -46,12 +48,14 @@
     "rxjs": "7.8.2"
   },
   "devDependencies": {
+    "@better-auth/cli": "1.4.21",
     "@playwright/test": "1.61.1",
     "@types/node": "22.19.7",
     "@types/pg": "8.15.5",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "drizzle-kit": "0.31.10",
+    "openapi-typescript": "7.13.0",
     "typescript": "5.9.3",
     "vite": "8.1.5",
     "vitest": "4.1.10"

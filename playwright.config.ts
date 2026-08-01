@@ -31,6 +31,9 @@ export default defineConfig({
         // Always unreachable: shell-smoke asserts degraded readiness (503), so
         // an ambient developer DATABASE_URL must never leak into this server.
         DATABASE_URL: unreachableDatabaseUrl,
+        // Fixed test-only value, not a real secret.
+        BETTER_AUTH_SECRET: "test-secret-for-e2e-0123456789abcdef",
+        PUBLIC_ORIGIN: "http://127.0.0.1:4173",
       },
       timeout: 180_000,
     },
