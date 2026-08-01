@@ -1,5 +1,9 @@
-{ "name": "@url-shortener/db", "version": "0.0.0", "private": true, "type": "module",
+{
+  "name": "@url-shortener/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "dependencies": { "@url-shortener/application": "0.0.0", "drizzle-orm": "0.45.2", "pg": "8.16.3" },
-  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "db:generate": "drizzle-kit generate" }
+  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "node dist/migrate-cli.js" }
 }
