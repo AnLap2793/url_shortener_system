@@ -9,10 +9,10 @@ const rules = {
   "packages/domain": { internal: [], forbidden: [/^react(?:\/|$)/, /^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/] },
   "packages/application": { internal: ["packages/domain"], forbidden: [/^react(?:\/|$)/, /^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/] },
   "packages/db": { internal: ["packages/application"], forbidden: [/^react(?:\/|$)/, /^@nestjs\//] },
-  "packages/contracts": { internal: [], forbidden: [/.+/] },
+  "packages/contracts": { internal: [], forbidden: [/^(?!openapi-fetch(?:\/|$)).+/] },
   "packages/observability": { internal: [], forbidden: [/^react(?:\/|$)/, /^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/] },
   "apps/web": { internal: ["packages/contracts"], forbidden: [/^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/] },
-  "apps/api": { internal: ["packages/application", "packages/db", "packages/observability"], forbidden: [/^react(?:\/|$)/, /^better-auth\/adapters/] },
+  "apps/api": { internal: ["packages/application", "packages/db", "packages/observability"], forbidden: [/^react(?:\/|$)/, /^better-auth\/adapters(?:\/|$)/] },
   "apps/worker": { internal: ["packages/application", "packages/observability"], forbidden: [/controllers?(?:\/|$)/i, /^@nestjs\//] },
 };
 
@@ -56,9 +56,13 @@ function importsFrom(source, file) {
   return imports;
 }
 
-function violates(rule, dependency, area) {
+function violates(rule, dependency, area, file) {
   const internal = dependency.startsWith("packages/") || dependency.startsWith("apps/");
-  return internal ? dependency !== area && !rule.internal.includes(dependency) : rule.forbidden.some((pattern) => pattern.test(dependency));
+  if (internal) return dependency !== area && !rule.internal.includes(dependency);
+  if (area === "apps/api" && dependency.startsWith("better-auth/adapters")) {
+    return !file.endsWith("apps/api/src/auth/better-auth-instance.ts");
+  }
+  return rule.forbidden.some((pattern) => pattern.test(dependency));
 }
 
 export async function violations(root) {
@@ -67,12 +71,12 @@ export async function violations(root) {
     const manifest = JSON.parse(await readFile(join(root, area, "package.json"), "utf8"));
     for (const dependency of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
       const canonical = dependency.startsWith("@url-shortener/") ? `packages/${dependency.slice(15)}` : dependency;
-      if (violates(rule, canonical, area)) found.push(`${area}/package.json declares forbidden ${dependency}`);
+      if (violates(rule, canonical, area, "")) found.push(`${area}/package.json declares forbidden ${dependency}`);
     }
     for (const file of await filesUnder(join(root, area, "src"))) {
       for (const specifier of importsFrom(await readFile(file, "utf8"), file)) {
         const dependency = await resolveSpecifier(specifier, file, root);
-        if (violates(rule, dependency, area)) found.push(`${relative(root, file)} imports forbidden ${specifier} (${dependency})`);
+        if (violates(rule, dependency, area, file.split(sep).join("/"))) found.push(`${relative(root, file)} imports forbidden ${specifier} (${dependency})`);
       }
     }
   }
@@ -89,10 +93,10 @@ async function selfTest() {
     await writeFile(join(root, "packages/domain/src/domain.mts"), 'await import(/* comment */ "@nestjs/common");');
     await writeFile(join(root, "packages/application/src/app.ts"), 'import type X from "@nestjs/common";');
     await writeFile(join(root, "apps/worker/src/worker.ts"), 'import "../../api/src/controller.js";');
-    await writeFile(join(root, "apps/api/src/controller.ts"), "export {};\n");
+    await writeFile(join(root, "apps/api/src/controller.ts"), 'import "better-auth/adapters/drizzle";\n');
     await writeFile(join(root, "apps/web/package.json"), '{"dependencies":{"better-auth":"1.0.0"}}');
     const found = await violations(root);
-    const expected = ["domain.mts", "application", "worker.ts", "package.json"];
+    const expected = ["domain.mts", "application", "worker.ts", "controller.ts", "package.json"];
     for (const marker of expected) if (!found.some((item) => item.includes(marker))) throw new Error(`Missing negative fixture ${marker}: ${found.join("; ")}`);
   } finally {
     await rm(root, { recursive: true, force: true });

@@ -4,6 +4,10 @@ import { join, resolve } from "node:path";
 export interface ApiConfig {
   databaseUrl: string;
   port: number;
+  /** Session signing secret for Better Auth; never logged. */
+  betterAuthSecret: string;
+  /** The single public origin (AD-2/AD-18): scheme://host[:port], no path. */
+  publicOrigin: string;
   /** Absolute path to the built SPA; static hosting is disabled when absent. */
   webDistDir?: string;
 }
@@ -42,6 +46,31 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
   const port = Number(environment.PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid TCP port");
 
+  const betterAuthSecret = environment.BETTER_AUTH_SECRET;
+  if (!betterAuthSecret || betterAuthSecret.length < 32) {
+    throw new Error("BETTER_AUTH_SECRET must be set to at least 32 characters");
+  }
+
+  let publicOrigin = `http://127.0.0.1:${port}`;
+  if (environment.PUBLIC_ORIGIN) {
+    let parsedOrigin: URL;
+    try {
+      parsedOrigin = new URL(environment.PUBLIC_ORIGIN);
+    } catch {
+      throw new Error("PUBLIC_ORIGIN must be an absolute http(s) origin without a path");
+    }
+    if (
+      !["http:", "https:"].includes(parsedOrigin.protocol) ||
+      parsedOrigin.pathname !== "/" ||
+      parsedOrigin.search ||
+      parsedOrigin.hash ||
+      environment.PUBLIC_ORIGIN.endsWith("/")
+    ) {
+      throw new Error("PUBLIC_ORIGIN must be an absolute http(s) origin without a path");
+    }
+    publicOrigin = parsedOrigin.origin;
+  }
+
   let webDistDir: string | undefined;
   if (environment.WEB_DIST_DIR) {
     webDistDir = resolve(environment.WEB_DIST_DIR);
@@ -49,5 +78,5 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
       throw new Error("WEB_DIST_DIR must point to a directory containing index.html");
     }
   }
-  return { databaseUrl: databaseUrl!, port, webDistDir };
+  return { databaseUrl: databaseUrl!, port, betterAuthSecret, publicOrigin, webDistDir };
 }

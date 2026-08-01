@@ -1,0 +1,16 @@
+.git
+.claude
+_bmad
+_bmad-output
+node_modules
+**/node_modules
+**/dist
+coverage
+playwright-report
+test-results
+.tmp-npm-cache
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+plans

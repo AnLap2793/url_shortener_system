@@ -6,25 +6,28 @@ import {
   type NestModule,
 } from "@nestjs/common";
 import { PgReadinessProbe } from "@url-shortener/db";
-import { SessionPlaceholderController } from "./auth/session-placeholder.controller.js";
+import { AuthLifecycle } from "./auth/auth-lifecycle.provider.js";
+import type { AuthHandle } from "./auth/better-auth-instance.js";
 import type { ApiConfig } from "./config.js";
 import { HealthController } from "./health/health.controller.js";
+import { MeController } from "./me/me.controller.js";
 import { HealthService } from "./health/health.service.js";
 import { ReadinessProbeLifecycle } from "./readiness-probe.provider.js";
 import { RequestLoggerMiddleware } from "./request-logger.middleware.js";
 import { SpaFallbackMiddleware } from "./web-static/spa-fallback.middleware.js";
 import { StaticAssetsMiddleware } from "./web-static/static-assets.middleware.js";
 import { createLogger } from "@url-shortener/observability";
-import { API_CONFIG, READINESS_PROBE } from "./tokens.js";
+import { API_CONFIG, AUTH_HANDLE, READINESS_PROBE } from "./tokens.js";
 
 @Module({})
 export class AppModule implements NestModule {
-  static register(config: ApiConfig): DynamicModule {
+  static register(config: ApiConfig, authHandle?: AuthHandle): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, SessionPlaceholderController],
+      controllers: [HealthController, MeController],
       providers: [
         { provide: API_CONFIG, useValue: config },
+        { provide: AUTH_HANDLE, useValue: authHandle },
         {
           provide: READINESS_PROBE,
           inject: [API_CONFIG],
@@ -37,6 +40,7 @@ export class AppModule implements NestModule {
         },
         HealthService,
         ReadinessProbeLifecycle,
+        AuthLifecycle,
         StaticAssetsMiddleware,
         SpaFallbackMiddleware,
       ],
