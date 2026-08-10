@@ -90,6 +90,19 @@ describe("API configuration", () => {
     }
   });
 
+  it("does not read worker-only email provider secrets", () => {
+    const config = loadConfig({
+      DATABASE_URL: validDatabaseUrl,
+      BETTER_AUTH_SECRET: validSecret,
+      EMAIL_DELIVERY_MODE: "resend",
+      RESEND_API_KEY: "sentinel-provider-key",
+      EMAIL_FROM: "sender@example.com",
+    });
+    expect(config).not.toHaveProperty("emailDeliveryMode");
+    expect(config).not.toHaveProperty("resendApiKey");
+    expect(config).not.toHaveProperty("emailFrom");
+  });
+
   it("fails fast for WEB_DIST_DIR without index.html and never reveals the value", () => {
     const root = mkdtempSync(join(tmpdir(), "config-sentinel-dist-"));
     tempRoots.push(root);

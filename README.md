@@ -32,6 +32,14 @@ Compose chờ PostgreSQL healthy, chạy migration một lần, rồi mới kh�
 
 Mở `http://127.0.0.1:3000`. NestJS phục vụ React SPA và API cùng origin.
 
+Đăng ký tại `/sign-up`, sau đó mở link email tại `/verify-email?token=...`. Tài khoản không tự đăng nhập và phải xác minh trước khi tạo session. Browser chỉ gọi facade cùng origin:
+
+- `POST /api/registration/sign-up`
+- `POST /api/registration/resend-verification`
+- `POST /api/registration/verify-email`
+
+Các mutation yêu cầu exact `Origin` và `Sec-Fetch-Site: same-origin`. Cooldown trả `429` với `Retry-After`; không gọi trực tiếp raw Better Auth lifecycle routes.
+
 ### 3. Kiểm tra
 
 ```bash
@@ -50,7 +58,7 @@ docker compose logs --no-color postgres migrate app
 docker compose --profile worker up -d worker
 ```
 
-Worker hiện chỉ là lifecycle skeleton, nên không chạy mặc định.
+Worker xử lý outbox xác minh email và không chạy mặc định. `EMAIL_DELIVERY_MODE=capture` chỉ đánh dấu delivery đã xử lý, phù hợp local smoke test. Để gửi thật, đặt `EMAIL_DELIVERY_MODE=resend`, `EMAIL_FROM` và `RESEND_API_KEY`; không truyền provider secret vào service `app`. Worker retry tối đa ba provider attempts với fenced lease, rồi redacts delivery URL ở trạng thái `sent`/`dead`.
 
 ### 5. Chạy integration tests với PostgreSQL Docker
 

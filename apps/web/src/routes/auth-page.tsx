@@ -1,6 +1,9 @@
-import { useEffect, useRef } from "react";
-import { Link } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Form, Link, useActionData, useNavigation } from "react-router";
+import { ErrorSummary } from "../components/error-summary.js";
+import { PrimaryButton } from "../components/primary-button.js";
 import { RouteAnnouncer } from "./route-announcer.js";
+import type { SignUpActionResult } from "./registration-actions.js";
 
 interface AuthPageProps {
   mode: "sign-in" | "sign-up";
@@ -11,32 +14,69 @@ export function AuthPage({ mode }: AuthPageProps) {
   const previousMode = useRef(mode);
   const isSignIn = mode === "sign-in";
   const heading = isSignIn ? "Sign in" : "Sign up";
+  const action = useActionData() as SignUpActionResult | undefined;
+  const navigation = useNavigation();
+  const [showPassword, setShowPassword] = useState(false);
+  const pending = navigation.state === "submitting";
+  const email = action?.status === "verification-pending" || action?.status === "error" || action?.status === "invalid" ? action.email ?? "" : "";
+  const errors = action?.status === "invalid" ? action.errors : [];
 
   useEffect(() => {
     document.title = `${heading} | Campaign Links`;
     if (previousMode.current !== mode) headingRef.current?.focus();
     previousMode.current = mode;
   }, [heading, mode]);
+
   const otherRoute = isSignIn ? "/sign-up" : "/sign-in";
   const otherLabel = isSignIn ? "Create an account" : "Back to sign in";
+  if (isSignIn) return <AuthShell heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel} />;
 
+  if (action?.status === "verification-pending") {
+    return (
+      <AuthShell heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel}>
+        <p role="status">Check your email for a verification link.</p>
+        <Link className="route-link" to="/verify-email">Resend email</Link>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel}>
+      <Form method="post" replace noValidate onSubmit={(event) => { if (pending) event.preventDefault(); }}>
+        <ErrorSummary errors={errors} />
+        {action?.status === "error" && <p role="alert">{action.message}</p>}
+        <p id="email-description">Use your work email address.</p>
+        <label htmlFor="email">Email address</label>
+        <input id="email" name="email" type="email" autoComplete="email" defaultValue={email} aria-describedby="email-description" aria-invalid={errors.some((error) => error.fieldId === "email") || undefined} required />
+        <label htmlFor="password">Password</label>
+        <div className="password-control">
+          <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={12} maxLength={128} aria-invalid={errors.some((error) => error.fieldId === "password") || undefined} required />
+          <button type="button" className="focus-indicator" aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide password" : "Show password"}</button>
+        </div>
+        <PrimaryButton type="submit" loading={pending} loadingLabel="Creating account…">Create account</PrimaryButton>
+      </Form>
+    </AuthShell>
+  );
+}
+
+function AuthShell({ heading, headingRef, otherRoute, otherLabel, children }: {
+  heading: string;
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
+  otherRoute: string;
+  otherLabel: string;
+  children?: React.ReactNode;
+}) {
   return (
     <>
       <RouteAnnouncer message={`${heading} page loaded`} />
-      <a className="skip-link" href="#main-content">
-        Skip to main content
-      </a>
-      <header className="site-header">
-        <span>Campaign Links</span>
-      </header>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+      <header className="site-header"><span>Campaign Links</span></header>
       <main id="main-content" className="auth-shell" tabIndex={-1}>
         <section aria-labelledby="auth-heading" className="auth-card">
           <p className="eyebrow">Secure marketer workspace</p>
           <h1 ref={headingRef} id="auth-heading" tabIndex={-1}>{heading}</h1>
-          <p>Authentication will be available in a later setup step.</p>
-          <Link className="route-link" to={otherRoute}>
-            {otherLabel}
-          </Link>
+          {children ?? <p>Authentication will be available in a later setup step.</p>}
+          <Link className="route-link" to={otherRoute}>{otherLabel}</Link>
         </section>
       </main>
       <footer className="site-footer">URL Shortener System</footer>

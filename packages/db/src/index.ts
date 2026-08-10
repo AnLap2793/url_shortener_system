@@ -46,4 +46,6 @@ export class PgReadinessProbe implements ReadinessProbe {
 
 export { createDb, type DbHandle } from "./create-db.js";
 export { runMigrations } from "./migrate.js";
+export { PgVerificationEmailQueueRepository } from "./verification-email-repository.js";
 export * as authSchema from "./schema/auth-schema.js";
+export * as verificationEmailSchema from "./schema/verification-email-schema.js";

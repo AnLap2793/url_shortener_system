@@ -15,9 +15,11 @@ export class WorkerLifecycle {
 
   async stop(timeoutMs = 2_000): Promise<void> {
     this.#abortController.abort();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     await Promise.race([
       Promise.allSettled([...this.#cleanup].map((cleanup) => cleanup())),
-      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+      new Promise<void>((resolve) => { timeout = setTimeout(resolve, timeoutMs); }),
     ]);
+    if (timeout) clearTimeout(timeout);
   }
 }

@@ -1,15 +1,54 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { authSchema, createDb, type DbHandle } from "@url-shortener/db";
+import { EnqueueVerificationEmail, type VerificationEmailQueueRepository } from "@url-shortener/application";
+import {
+  PgVerificationEmailQueueRepository,
+  authSchema,
+  createDb,
+  type DbHandle,
+} from "@url-shortener/db";
 import type { ApiConfig } from "../config.js";
+import { createVerificationEmailUrl } from "./verification-handoff.js";
 
-function buildAuth(config: ApiConfig, db: DbHandle["db"]) {
+interface VerificationOperation {
+  logicalKey: string;
+}
+
+const verificationOperation = new AsyncLocalStorage<VerificationOperation>();
+type Queue = VerificationEmailQueueRepository;
+
+function buildAuth(config: ApiConfig, db: DbHandle["db"], queue: Queue) {
+  const enqueueVerificationEmail = new EnqueueVerificationEmail(queue);
   return betterAuth({
     baseURL: config.publicOrigin,
     secret: config.betterAuthSecret,
     trustedOrigins: [config.publicOrigin],
     database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
-    emailAndPassword: { enabled: true },
+    logger: { disabled: true },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 12,
+      maxPasswordLength: 128,
+      requireEmailVerification: true,
+      autoSignIn: false,
+    },
+    emailVerification: {
+      sendOnSignUp: false,
+      expiresIn: 3_600,
+      autoSignInAfterVerification: false,
+      sendVerificationEmail: async ({ user, token }) => {
+        const operation = verificationOperation.getStore();
+        if (!operation) throw new Error("Verification delivery operation is missing");
+        await enqueueVerificationEmail.execute({
+          id: randomUUID(),
+          logicalKey: operation.logicalKey,
+          recipient: user.email,
+          verificationUrl: createVerificationEmailUrl(config.publicOrigin, token),
+        });
+      },
+    },
   });
 }
 
@@ -17,17 +56,27 @@ export type BetterAuthInstance = ReturnType<typeof buildAuth>;
 
 export interface AuthHandle {
   auth: BetterAuthInstance;
-  /** Closes the auth database pool; idempotent. */
+  queue: PgVerificationEmailQueueRepository;
+  withVerificationOperation<T>(
+    logicalKey: string,
+    action: () => Promise<T>,
+  ): Promise<{ value: T }>;
   closeDb(): Promise<void>;
 }
 
-/**
- * The one auth owner (AD-9): Better Auth over the shared Drizzle schema.
- * Session cookies inherit Better Auth defaults (HttpOnly, SameSite=Lax,
- * Secure on https baseURL); no second session store, no community wrapper.
- * Email verification flows are Story 1.4 scope.
- */
+/** One Better Auth owner plus a durable callback-only verification outbox. */
 export function createAuth(config: ApiConfig): AuthHandle {
   const handle = createDb(config.databaseUrl);
-  return { auth: buildAuth(config, handle.db), closeDb: handle.close };
+  const queue = new PgVerificationEmailQueueRepository(config.databaseUrl);
+  const auth = buildAuth(config, handle.db, queue);
+  return {
+    auth,
+    queue,
+    withVerificationOperation: async (logicalKey, action) => ({
+      value: await verificationOperation.run({ logicalKey }, action),
+    }),
+    closeDb: async () => {
+      await Promise.all([handle.close(), queue.close()]);
+    },
+  };
 }

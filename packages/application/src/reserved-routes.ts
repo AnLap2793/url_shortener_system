@@ -13,6 +13,7 @@ export const controllerOwnedPrefixes = ["/api", "/assets", "/health"] as const;
 export const applicationBrowserRoutes = [
   "/sign-in",
   "/sign-up",
+  "/verify-email",
   "/dashboard",
   "/links",
   "/account",
