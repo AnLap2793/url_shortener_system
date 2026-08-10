@@ -139,6 +139,47 @@ describe.skipIf(!integrationUrl)("registration facade", () => {
     }
   }, 30_000);
 
+  it("reconciles concurrent first signup without duplicate users or deliveries", async () => {
+    const email = `race-${randomUUID().slice(0, 8)}@example.com`;
+    const responses = await Promise.all([
+      post("/api/registration/sign-up", {
+        email,
+        password: "correct-horse-battery-staple",
+      }),
+      post("/api/registration/sign-up", {
+        email,
+        password: "correct-horse-battery-staple",
+      }),
+    ]);
+    expect(responses.map(({ status }) => status).sort()).toEqual([200, 429]);
+    const accepted = responses.find(({ status }) => status === 200)!;
+    const throttled = responses.find(({ status }) => status === 429)!;
+    expect(accepted.headers.get("set-cookie")).toBeNull();
+    expect(await accepted.json()).toEqual({ status: "verification-pending" });
+    expect(throttled.headers.get("retry-after")).toMatch(/^\d+$/);
+    expect(await throttled.json()).toMatchObject({
+      status: 429,
+      code: "VERIFICATION_COOLDOWN",
+    });
+
+    const client = new pg.Client({ connectionString: databaseUrl });
+    await client.connect();
+    try {
+      const users = await client.query(
+        `SELECT count(*)::integer AS count FROM "user" WHERE email = $1`,
+        [email],
+      );
+      expect(users.rows[0]?.count).toBe(1);
+      const deliveries = await client.query(
+        `SELECT count(*)::integer AS count FROM verification_email_delivery WHERE recipient = $1`,
+        [email],
+      );
+      expect(deliveries.rows[0]?.count).toBe(1);
+    } finally {
+      await client.end();
+    }
+  }, 30_000);
+
   it("uses RFC 9457 validation and cooldown responses", async () => {
     const invalid = await post("/api/registration/sign-up", { email: "bad", password: "short" });
     expect(invalid.status).toBe(400);

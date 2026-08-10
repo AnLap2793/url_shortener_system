@@ -17,7 +17,7 @@ async function withDatabase(run: (url: string) => Promise<void>): Promise<void> 
     await runMigrations(url.toString());
     await run(url.toString());
   } finally {
-    await admin.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
+    await admin.query(`DROP DATABASE IF EXISTS ${name}`);
     await admin.end();
   }
 }

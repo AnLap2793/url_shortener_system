@@ -17,6 +17,9 @@ export class PgVerificationEmailQueueRepository implements VerificationEmailQueu
       statement_timeout: 10_000,
       query_timeout: 10_000,
     });
+    this.#pool.on("error", () => {
+      // Idle-client errors must not become uncaught process errors during teardown.
+    });
   }
 
   async consumeCooldown(keyDigest: string, cooldownSeconds: number) {
