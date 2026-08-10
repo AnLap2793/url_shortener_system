@@ -61,6 +61,12 @@ services:
     <<: *application
     profiles: ["worker"]
     command: ["node", "apps/worker/dist/main.js"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-url_shortener}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-url_shortener}
+      NODE_ENV: development
+      EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE:-capture}
+      EMAIL_FROM: ${EMAIL_FROM:-URL Shortener <verify@example.com>}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

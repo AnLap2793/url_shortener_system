@@ -8,6 +8,20 @@
       "when": 1785080413411,
       "tag": "0000_huge_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786277526149,
+      "tag": "0001_cloudy_fantastic_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786373411527,
+      "tag": "0004_curious_bucky",
+      "breakpoints": true
     }
   ]
 }

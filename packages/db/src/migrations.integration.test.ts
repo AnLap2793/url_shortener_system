@@ -31,7 +31,14 @@ describe.skipIf(!integrationUrl)("auth migration chain", () => {
           "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
         );
         const names = tables.rows.map((row) => row.table_name);
-        for (const expected of ["account", "session", "user", "verification"]) {
+        for (const expected of [
+          "account",
+          "session",
+          "user",
+          "verification",
+          "verification_email_cooldown",
+          "verification_email_delivery",
+        ]) {
           expect(names).toContain(expected);
         }
         const idType = await target.query(

@@ -6,6 +6,7 @@ import { runMigrations } from "@url-shortener/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootstrap } from "../bootstrap.js";
 import type { ApiConfig } from "../config.js";
+import { createAuth, type AuthHandle } from "./better-auth-instance.js";
 
 const integrationUrl = process.env.INTEGRATION_DATABASE_URL;
 
@@ -24,8 +25,10 @@ async function reservePort(): Promise<number> {
 describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
   let baseUrl: string;
   let close: (() => Promise<void>) | undefined;
+  let authHandle: AuthHandle;
   let admin: pg.Client;
   let ephemeralName: string;
+  let databaseUrl: string;
 
   beforeAll(async () => {
     admin = new pg.Client({ connectionString: integrationUrl });
@@ -34,25 +37,28 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
     await admin.query(`CREATE DATABASE ${ephemeralName}`);
     const ephemeralUrl = new URL(integrationUrl!);
     ephemeralUrl.pathname = `/${ephemeralName}`;
-    await runMigrations(ephemeralUrl.toString());
+    databaseUrl = ephemeralUrl.toString();
+    await runMigrations(databaseUrl);
 
     const port = await reservePort();
     baseUrl = `http://127.0.0.1:${port}`;
     const config: ApiConfig = {
-      databaseUrl: ephemeralUrl.toString(),
+      databaseUrl,
       port,
       betterAuthSecret: "integration-secret-0123456789abcdef-xyz",
       publicOrigin: baseUrl,
     };
     // Boot through the REAL composition root: any body-parser reordering must
     // fail this suite (AC3 ordering regression).
-    const app = await bootstrap(config);
+    authHandle = createAuth(config);
+    const app = await bootstrap(config, authHandle);
     await app.listen(port, "127.0.0.1");
     close = () => app.close();
   }, 60_000);
 
   afterAll(async () => {
     await close?.();
+    await authHandle.closeDb();
     await admin.query(`DROP DATABASE IF EXISTS ${ephemeralName} WITH (FORCE)`);
     await admin.end();
   });
@@ -63,26 +69,46 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
     "sec-fetch-site": "same-origin",
   });
 
-  it("completes a JSON sign-up without hanging, issues a session cookie, and resolves the same actor", async () => {
-    const email = `marketer-${randomUUID().slice(0, 8)}@example.com`;
-    const signUp = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
-      method: "POST",
-      headers: sameOriginHeaders(),
-      body: JSON.stringify({ email, password: "correct-horse-battery-staple-1", name: "Marketer" }),
-      signal: AbortSignal.timeout(5_000),
-    });
-    expect(signUp.status).toBe(200);
-    const setCookie = signUp.headers.get("set-cookie") ?? "";
-    expect(setCookie).toContain("better-auth.session_token");
-    expect(setCookie.toLowerCase()).toContain("httponly");
-    const body = (await signUp.json()) as { user?: { id?: string } };
-    expect(typeof body.user?.id).toBe("string");
+  it("keeps raw registration lifecycle endpoints unreachable", async () => {
+    for (const path of ["sign-up/email", "send-verification-email", "verify-email"]) {
+      const response = await fetch(`${baseUrl}/api/auth/${path}`, {
+        method: path === "verify-email" ? "GET" : "POST",
+        headers: path === "verify-email" ? undefined : sameOriginHeaders(),
+        body: path === "verify-email" ? undefined : JSON.stringify({}),
+      });
+      expect(response.status, path).toBe(404);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+    }
+  });
 
-    const sessionCookie = setCookie.split(";")[0]!;
-    const me = await fetch(`${baseUrl}/api/me`, { headers: { cookie: sessionCookie } });
-    expect(me.status).toBe(200);
-    expect(me.headers.get("cache-control")).toBe("no-store");
-    expect(await me.json()).toEqual({ actorId: body.user!.id });
+  it("creates an unverified account in-process without a session and enqueues the SPA URL", async () => {
+    const email = `marketer-${randomUUID().slice(0, 8)}@example.com`;
+    const operation = await authHandle.withVerificationOperation(randomUUID(), async () => {
+      const signUp = await authHandle.auth.api.signUpEmail({
+        body: { email, password: "correct-horse-battery-staple-1", name: "Marketer" },
+      });
+      await authHandle.auth.api.sendVerificationEmail({ body: { email } });
+      return signUp;
+    });
+    expect(operation.value.token).toBeNull();
+
+    const client = new pg.Client({ connectionString: databaseUrl });
+    await client.connect();
+    try {
+      const user = await client.query(`SELECT email_verified FROM "user" WHERE email = $1`, [email]);
+      expect(user.rows[0]?.email_verified).toBe(false);
+      const delivery = await client.query(
+        `SELECT verification_url FROM verification_email_delivery WHERE recipient = $1`,
+        [email],
+      );
+      expect(delivery.rows[0]?.verification_url).toMatch(
+        new RegExp(`^${baseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/verify-email\\?token=`),
+      );
+      expect(delivery.rows[0]?.verification_url).not.toContain("/api/auth/verify-email");
+    } finally {
+      await client.end();
+    }
+    expect((await fetch(`${baseUrl}/api/me`)).status).toBe(401);
   }, 30_000);
 
   it("rejects /api/me without a session", async () => {

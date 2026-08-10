@@ -7,6 +7,26 @@ export interface ReadinessProbe {
 }
 
 export {
+  CaptureVerificationEmailTransport,
+  FailingVerificationEmailTransport,
+  type VerificationEmailDelivery,
+  type VerificationEmailDeliveryResult,
+  type VerificationEmailFailureCategory,
+  type VerificationEmailTransport,
+} from "./verification-email-delivery.js";
+
+export {
+  CheckVerificationEmailDelivery,
+  ConsumeVerificationEmailCooldown,
+  EnqueueVerificationEmail,
+  ProcessVerificationEmailQueue,
+  createVerificationEmailCooldownKey,
+  type ClaimedVerificationEmail,
+  type VerificationEmailEnqueueInput,
+  type VerificationEmailQueueRepository,
+} from "./verification-email-queue.js";
+
+export {
   applicationBrowserRoutes,
   controllerOwnedExactRoutes,
   controllerOwnedPrefixes,

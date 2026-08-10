@@ -3,11 +3,14 @@ import { toNodeHandler } from "better-auth/node";
 import type { INestApplication } from "@nestjs/common";
 import { AppModule } from "./app.module.js";
 import { createAuth, type AuthHandle } from "./auth/better-auth-instance.js";
+import { createAuthLifecycleDeny } from "./auth/auth-lifecycle-deny.middleware.js";
 import type { ApiConfig } from "./config.js";
+import { registrationParserError } from "./registration/registration-parser-error.middleware.js";
 import { createOriginCheck } from "./security/origin-check.middleware.js";
 
 interface ExpressLike {
   use(path: string, handler: unknown): void;
+  use(handler: unknown): void;
   all(path: string, handler: unknown): void;
 }
 
@@ -22,17 +25,21 @@ interface BodyParserCapable {
  *    parser touches the stream (bodyParser: false at create);
  * 3. JSON/urlencoded parsing is re-enabled afterwards for Nest routes only.
  */
-export async function bootstrap(config: ApiConfig): Promise<INestApplication> {
-  const authHandle: AuthHandle = createAuth(config);
+export async function bootstrap(
+  config: ApiConfig,
+  authHandle: AuthHandle = createAuth(config),
+): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule.register(config, authHandle), {
     bodyParser: false,
     logger: false,
   });
   const server = app.getHttpAdapter().getInstance() as ExpressLike;
   server.use("/api", createOriginCheck(config.publicOrigin));
+  server.use("/api/auth", createAuthLifecycleDeny());
   server.all("/api/auth/*splat", toNodeHandler(authHandle.auth));
   (app as unknown as BodyParserCapable).useBodyParser("json");
   (app as unknown as BodyParserCapable).useBodyParser("urlencoded", { extended: true });
+  server.use(registrationParserError);
   app.enableShutdownHooks();
   return app;
 }

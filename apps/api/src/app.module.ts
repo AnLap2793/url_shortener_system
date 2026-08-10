@@ -17,17 +17,20 @@ import { RequestLoggerMiddleware } from "./request-logger.middleware.js";
 import { SpaFallbackMiddleware } from "./web-static/spa-fallback.middleware.js";
 import { StaticAssetsMiddleware } from "./web-static/static-assets.middleware.js";
 import { createLogger } from "@url-shortener/observability";
-import { API_CONFIG, AUTH_HANDLE, READINESS_PROBE } from "./tokens.js";
+import { API_CONFIG, AUTH_HANDLE, READINESS_PROBE, VERIFICATION_EMAIL_QUEUE } from "./tokens.js";
+import { RegistrationController } from "./registration/registration.controller.js";
+import { RegistrationService } from "./registration/registration.service.js";
 
 @Module({})
 export class AppModule implements NestModule {
   static register(config: ApiConfig, authHandle?: AuthHandle): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, MeController],
+      controllers: [HealthController, MeController, RegistrationController],
       providers: [
         { provide: API_CONFIG, useValue: config },
         { provide: AUTH_HANDLE, useValue: authHandle },
+        { provide: VERIFICATION_EMAIL_QUEUE, useValue: authHandle?.queue },
         {
           provide: READINESS_PROBE,
           inject: [API_CONFIG],
@@ -39,6 +42,7 @@ export class AppModule implements NestModule {
           },
         },
         HealthService,
+        RegistrationService,
         ReadinessProbeLifecycle,
         AuthLifecycle,
         StaticAssetsMiddleware,
