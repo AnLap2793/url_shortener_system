@@ -383,7 +383,7 @@ Tôi muốn đăng ký bằng email/password và xác minh email,
 **When** verification endpoint xử lý token
 **Then** email được đánh dấu verified
 **And** giao diện hiển thị verified-success state với action Sign in
-**And** token không thể dùng lại.
+**And** token được phép mở lại trong thời hạn; replay hợp lệ trả thành công nhưng không tạo session, gửi email hoặc tạo side effect mới.
 
 **Given** verification token hết hạn hoặc không hợp lệ
 **When** marketer mở verification URL

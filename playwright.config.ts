@@ -8,7 +8,7 @@ export default defineConfig({
   projects: [
     {
       name: "shell",
-      testMatch: /(auth-shell|shell-smoke)\.spec\.ts/,
+      testMatch: /(auth-shell|shell-smoke|authentication-flow)\.spec\.ts/,
       use: { baseURL: "http://127.0.0.1:4173" },
     },
     {

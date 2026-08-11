@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { AccountPage } from "./routes/account-page.js";
+import { signInAction, signOutAction } from "./routes/authentication-actions.js";
 import { AuthPage } from "./routes/auth-page.js";
 import { DashboardPage } from "./routes/dashboard-page.js";
 import { LinksPage } from "./routes/links-page.js";
@@ -10,7 +11,7 @@ import { VerifyEmailPage } from "./routes/verify-email-page.js";
 
 export const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/sign-in" replace /> },
-  { path: "/sign-in", element: <AuthPage mode="sign-in" /> },
+  { path: "/sign-in", element: <AuthPage mode="sign-in" />, action: signInAction },
   { path: "/sign-up", element: <AuthPage mode="sign-up" />, action: signUpAction },
   { path: "/verify-email", element: <VerifyEmailPage /> },
   {
@@ -20,7 +21,7 @@ export const router = createBrowserRouter([
     children: [
       { path: "/dashboard", element: <DashboardPage /> },
       { path: "/links", element: <LinksPage /> },
-      { path: "/account", element: <AccountPage /> },
+      { path: "/account", element: <AccountPage />, action: signOutAction },
     ],
   },
 ]);

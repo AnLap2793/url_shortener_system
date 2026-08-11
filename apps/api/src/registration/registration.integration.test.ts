@@ -233,12 +233,17 @@ describe.skipIf(!integrationUrl)("registration facade", () => {
     expect(await throttled.json()).toMatchObject({ status: 429, code: "VERIFICATION_COOLDOWN" });
   });
 
-  it("verifies a valid token, rejects invalid tokens, and never creates a session", async () => {
+  it("verifies a valid token, rejects invalid tokens, and only then allows facade sign-in", async () => {
     const email = `verify-${randomUUID().slice(0, 8)}@example.com`;
+    const password = "correct-horse-battery-staple";
     expect((await post("/api/registration/sign-up", {
       email,
-      password: "correct-horse-battery-staple",
+      password,
     })).status).toBe(200);
+    const unverified = await post("/api/authentication/sign-in", { email, password });
+    expect(unverified.status).toBe(403);
+    expect(unverified.headers.get("set-cookie")).toBeNull();
+    expect(await unverified.json()).toMatchObject({ code: "EMAIL_VERIFICATION_REQUIRED" });
     const client = new pg.Client({ connectionString: databaseUrl });
     await client.connect();
     try {
@@ -253,6 +258,22 @@ describe.skipIf(!integrationUrl)("registration facade", () => {
       expect(await verified.json()).toEqual({ status: "verified" });
       expect((await post("/api/registration/verify-email", { token })).status).toBe(200);
       expect((await fetch(`${baseUrl}/api/me`)).status).toBe(401);
+
+      const signedIn = await post("/api/authentication/sign-in", { email, password });
+      expect(signedIn.status).toBe(200);
+      expect(signedIn.headers.get("cache-control")).toBe("no-store");
+      expect(signedIn.headers.get("set-cookie")).toMatch(/HttpOnly/i);
+      expect(await signedIn.json()).toEqual({ status: "signed-in" });
+      const cookie = signedIn.headers.get("set-cookie")!.split(";", 1)[0]!;
+      expect((await fetch(`${baseUrl}/api/me`, { headers: { cookie } })).status).toBe(200);
+
+      const signedOut = await fetch(`${baseUrl}/api/authentication/sign-out`, {
+        method: "POST",
+        headers: { ...headers(), cookie },
+      });
+      expect(signedOut.status).toBe(200);
+      expect(signedOut.headers.get("set-cookie")).toMatch(/max-age=0/i);
+      expect((await fetch(`${baseUrl}/api/me`, { headers: { cookie } })).status).toBe(401);
 
       const invalid = await post("/api/registration/verify-email", { token: "malformed" });
       expect(invalid.status).toBe(400);

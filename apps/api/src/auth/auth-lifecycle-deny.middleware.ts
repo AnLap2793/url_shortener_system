@@ -15,6 +15,9 @@ const deniedPaths = new Set([
   "/sign-up/email",
   "/send-verification-email",
   "/verify-email",
+  "/sign-in/email",
+  "/sign-out",
+  "/get-session",
 ]);
 
 export function createAuthLifecycleDeny() {

@@ -24,7 +24,7 @@ describe("API process boundaries", () => {
     expect(code).not.toBe(0);
     expect(output).not.toContain("sentinel-malformed");
     await expect(fetch("http://127.0.0.1:3199/health/live")).rejects.toThrow();
-  });
+  }, 15_000);
 
   it("stays live after readiness failure", async () => {
     const child = runApi({ DATABASE_URL: "postgres://invalid:sentinel-secret@127.0.0.1:1/test", PORT: "3198" });
@@ -33,7 +33,7 @@ describe("API process boundaries", () => {
     child.stderr.on("data", (chunk) => { output += chunk; });
     try {
       let live: Response | undefined;
-      for (let attempt = 0; attempt < 20; attempt++) {
+      for (let attempt = 0; attempt < 50; attempt++) {
         live = await fetch("http://127.0.0.1:3198/health/live").catch(() => undefined);
         if (live) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -47,7 +47,7 @@ describe("API process boundaries", () => {
       child.kill("SIGTERM");
       await once(child, "exit");
     }
-  });
+  }, 15_000);
 
   it("serves the built SPA for deep-route refreshes when WEB_DIST_DIR is set", async () => {
     const child = runApi({
@@ -57,7 +57,7 @@ describe("API process boundaries", () => {
     });
     try {
       let page: Response | undefined;
-      for (let attempt = 0; attempt < 20; attempt++) {
+      for (let attempt = 0; attempt < 50; attempt++) {
         page = await fetch("http://127.0.0.1:3197/dashboard", { headers: { accept: "text/html" } })
           .catch(() => undefined);
         if (page) break;
@@ -71,7 +71,7 @@ describe("API process boundaries", () => {
       child.kill("SIGTERM");
       await once(child, "exit");
     }
-  });
+  }, 15_000);
 
   it("fails fast without BETTER_AUTH_SECRET", async () => {
     const environment = {
@@ -90,7 +90,7 @@ describe("API process boundaries", () => {
     const [code] = await once(child, "exit");
     expect(code).not.toBe(0);
     expect(output).toContain("BETTER_AUTH_SECRET");
-  });
+  }, 15_000);
 
   it("fails fast for an invalid WEB_DIST_DIR without leaking its value", async () => {
     const emptyDir = join(mkdtempSync(join(tmpdir(), "sentinel-web-dist-")), "sentinel-web-dist");

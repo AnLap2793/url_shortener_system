@@ -37,15 +37,17 @@ Mở `http://127.0.0.1:3000`. NestJS phục vụ React SPA và API cùng origin.
 - `POST /api/registration/sign-up`
 - `POST /api/registration/resend-verification`
 - `POST /api/registration/verify-email`
+- `POST /api/authentication/sign-in`
+- `POST /api/authentication/sign-out`
 
-Các mutation yêu cầu exact `Origin` và `Sec-Fetch-Site: same-origin`. Cooldown trả `429` với `Retry-After`; không gọi trực tiếp raw Better Auth lifecycle routes.
+Các mutation yêu cầu exact `Origin` và `Sec-Fetch-Site: same-origin`. Cooldown và login throttle trả `429` với `Retry-After`; không gọi trực tiếp raw Better Auth lifecycle routes.
 
 ### 3. Kiểm tra
 
 ```bash
 curl.exe -fsS http://127.0.0.1:3000/health/live
 curl.exe -fsS http://127.0.0.1:3000/health/ready
-curl.exe -fsS http://127.0.0.1:3000/api/auth/get-session
+curl.exe -fsS http://127.0.0.1:3000/api/me
 docker compose run --rm migrate
 ```
 

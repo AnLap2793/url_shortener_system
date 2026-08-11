@@ -83,6 +83,8 @@ describe("API configuration", () => {
     expect(loadConfig({ ...base, PUBLIC_ORIGIN: "https://links.example.com" }).publicOrigin).toBe(
       "https://links.example.com",
     );
+    expect(() => loadConfig({ ...base, NODE_ENV: "production", PUBLIC_ORIGIN: "http://links.example.com" }))
+      .toThrow("PUBLIC_ORIGIN must use https in production");
     for (const invalid of ["not-a-url", "ftp://x.example", "https://x.example/path", "https://x.example/"]) {
       expect(() => loadConfig({ ...base, PUBLIC_ORIGIN: invalid }), invalid).toThrow(
         "PUBLIC_ORIGIN must be an absolute http(s) origin without a path",

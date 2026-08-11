@@ -8,9 +8,9 @@ test("deep protected route refresh serves the SPA document then redirects to sig
   await expect(page.locator("h1")).toHaveText("Sign in");
 });
 
-test("protected routes preserve their own intended path", async ({ page }) => {
-  await page.goto("/links");
-  await page.waitForURL("**/sign-in?redirectTo=%2Flinks");
+test("protected routes preserve their own intended path and query", async ({ page }) => {
+  await page.goto("/links?filter=active");
+  await page.waitForURL("**/sign-in?redirectTo=%2Flinks%3Ffilter%3Dactive");
   await page.goto("/account");
   await page.waitForURL("**/sign-in?redirectTo=%2Faccount");
 });

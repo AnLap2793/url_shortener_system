@@ -70,6 +70,9 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
     }
     publicOrigin = parsedOrigin.origin;
   }
+  if (environment.NODE_ENV === "production" && new URL(publicOrigin).protocol !== "https:") {
+    throw new Error("PUBLIC_ORIGIN must use https in production");
+  }
 
   let webDistDir: string | undefined;
   if (environment.WEB_DIST_DIR) {

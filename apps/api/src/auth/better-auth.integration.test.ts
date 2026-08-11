@@ -70,11 +70,18 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
   });
 
   it("keeps raw registration lifecycle endpoints unreachable", async () => {
-    for (const path of ["sign-up/email", "send-verification-email", "verify-email"]) {
+    for (const path of [
+      "sign-up/email",
+      "send-verification-email",
+      "verify-email",
+      "sign-in/email",
+      "sign-out",
+      "get-session",
+    ]) {
       const response = await fetch(`${baseUrl}/api/auth/${path}`, {
-        method: path === "verify-email" ? "GET" : "POST",
-        headers: path === "verify-email" ? undefined : sameOriginHeaders(),
-        body: path === "verify-email" ? undefined : JSON.stringify({}),
+        method: ["verify-email", "get-session"].includes(path) ? "GET" : "POST",
+        headers: ["verify-email", "get-session"].includes(path) ? undefined : sameOriginHeaders(),
+        body: ["verify-email", "get-session"].includes(path) ? undefined : JSON.stringify({}),
       });
       expect(response.status, path).toBe(404);
       expect(response.headers.get("cache-control")).toBe("no-store");
@@ -142,8 +149,8 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
       expect(rejected.status, JSON.stringify(headers)).toBe(403);
       expect((await rejected.json()).code).toBe("CSRF_REJECTED");
     }
-    // GET requests are never blocked by the origin check.
-    const ok = await fetch(`${baseUrl}/api/auth/get-session`, { signal: AbortSignal.timeout(5_000) });
-    expect(ok.status).toBe(200);
+    // GET requests are never blocked by the origin check. OAuth callbacks remain public.
+    const ok = await fetch(`${baseUrl}/api/auth/callback/google`, { signal: AbortSignal.timeout(5_000) });
+    expect(ok.status).not.toBe(403);
   }, 30_000);
 });

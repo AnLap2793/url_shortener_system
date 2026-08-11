@@ -27,6 +27,15 @@ export {
 } from "./verification-email-queue.js";
 
 export {
+  ConsumeLoginRateLimit,
+  createLoginRateLimitKey,
+  type LoginRateLimitRepository,
+  type LoginRateLimitRequest,
+  type LoginRateLimitResult,
+  type LoginRateLimitScope,
+} from "./login-rate-limit.js";
+
+export {
   applicationBrowserRoutes,
   controllerOwnedExactRoutes,
   controllerOwnedPrefixes,

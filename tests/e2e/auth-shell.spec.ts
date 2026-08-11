@@ -63,16 +63,20 @@ for (const route of routes) {
       await skipLink.press("Enter");
       await expect(page.locator("main")).toBeFocused();
 
+      await expect(page.getByLabel("Email address")).toHaveAttribute("autocomplete", "email");
+      await expect(page.getByLabel("Password")).toHaveAttribute(
+        "autocomplete",
+        route === "/sign-in" ? "current-password" : "new-password",
+      );
+      const reveal = page.getByRole("button", { name: "Show password" });
+      await expect(reveal).toHaveAttribute("aria-pressed", "false");
+      await reveal.click();
+      await expect(page.getByLabel("Password")).toHaveAttribute("type", "text");
+      await expect(page.getByRole("button", { name: "Hide password" })).toHaveAttribute("aria-pressed", "true");
       if (route === "/sign-in") {
-        await expect(page.locator("form, button, input, [role=button]")).toHaveCount(0);
+        await expect(page.getByText("Password reset is not available in this version.")).toBeVisible();
       } else {
-        await expect(page.getByLabel("Email address")).toHaveAttribute("autocomplete", "email");
-        await expect(page.getByLabel("Password")).toHaveAttribute("autocomplete", "new-password");
-        const reveal = page.getByRole("button", { name: "Show password" });
-        await expect(reveal).toHaveAttribute("aria-pressed", "false");
-        await reveal.click();
-        await expect(page.getByLabel("Password")).toHaveAttribute("type", "text");
-        await expect(page.getByRole("button", { name: "Hide password" })).toHaveAttribute("aria-pressed", "true");
+        await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
       }
       expect(unexpectedRequests).toEqual([]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

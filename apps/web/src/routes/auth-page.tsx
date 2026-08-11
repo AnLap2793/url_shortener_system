@@ -3,6 +3,7 @@ import { Form, Link, useActionData, useNavigation } from "react-router";
 import { ErrorSummary } from "../components/error-summary.js";
 import { PrimaryButton } from "../components/primary-button.js";
 import { RouteAnnouncer } from "./route-announcer.js";
+import type { SignInActionResult } from "./authentication-actions.js";
 import type { SignUpActionResult } from "./registration-actions.js";
 
 interface AuthPageProps {
@@ -14,12 +15,10 @@ export function AuthPage({ mode }: AuthPageProps) {
   const previousMode = useRef(mode);
   const isSignIn = mode === "sign-in";
   const heading = isSignIn ? "Sign in" : "Sign up";
-  const action = useActionData() as SignUpActionResult | undefined;
+  const action = useActionData() as SignUpActionResult | SignInActionResult | undefined;
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
   const pending = navigation.state === "submitting";
-  const email = action?.status === "verification-pending" || action?.status === "error" || action?.status === "invalid" ? action.email ?? "" : "";
-  const errors = action?.status === "invalid" ? action.errors : [];
 
   useEffect(() => {
     document.title = `${heading} | Campaign Links`;
@@ -29,9 +28,12 @@ export function AuthPage({ mode }: AuthPageProps) {
 
   const otherRoute = isSignIn ? "/sign-up" : "/sign-in";
   const otherLabel = isSignIn ? "Create an account" : "Back to sign in";
-  if (isSignIn) return <AuthShell heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel} />;
+  if (isSignIn) {
+    return <SignInForm action={action as SignInActionResult | undefined} heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel} pending={pending} showPassword={showPassword} setShowPassword={setShowPassword} />;
+  }
 
-  if (action?.status === "verification-pending") {
+  const signUpAction = action as SignUpActionResult | undefined;
+  if (signUpAction?.status === "verification-pending") {
     return (
       <AuthShell heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel}>
         <p role="status">Check your email for a verification link.</p>
@@ -40,23 +42,74 @@ export function AuthPage({ mode }: AuthPageProps) {
     );
   }
 
+  const email = signUpAction?.status === "error" || signUpAction?.status === "invalid" ? signUpAction.email ?? "" : "";
+  const errors = signUpAction?.status === "invalid" ? signUpAction.errors : [];
   return (
     <AuthShell heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel}>
       <Form method="post" replace noValidate onSubmit={(event) => { if (pending) event.preventDefault(); }}>
         <ErrorSummary errors={errors} />
-        {action?.status === "error" && <p role="alert">{action.message}</p>}
+        {signUpAction?.status === "error" && <p role="alert">{signUpAction.message}</p>}
         <p id="email-description">Use your work email address.</p>
         <label htmlFor="email">Email address</label>
         <input id="email" name="email" type="email" autoComplete="email" defaultValue={email} aria-describedby="email-description" aria-invalid={errors.some((error) => error.fieldId === "email") || undefined} required />
-        <label htmlFor="password">Password</label>
-        <div className="password-control">
-          <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={12} maxLength={128} aria-invalid={errors.some((error) => error.fieldId === "password") || undefined} required />
-          <button type="button" className="focus-indicator" aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide password" : "Show password"}</button>
-        </div>
+        <PasswordControl showPassword={showPassword} setShowPassword={setShowPassword} autoComplete="new-password" invalid={errors.some((error) => error.fieldId === "password")} />
         <PrimaryButton type="submit" loading={pending} loadingLabel="Creating account…">Create account</PrimaryButton>
       </Form>
     </AuthShell>
   );
+}
+
+function SignInForm({ action, heading, headingRef, otherRoute, otherLabel, pending, showPassword, setShowPassword }: {
+  action: SignInActionResult | undefined;
+  heading: string;
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
+  otherRoute: string;
+  otherLabel: string;
+  pending: boolean;
+  showPassword: boolean;
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  const passwordRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (action && action.status !== "invalid" && passwordRef.current) passwordRef.current.value = "";
+  }, [action]);
+  const errors = action?.status === "invalid" ? action.errors : [];
+  const email = action && "email" in action ? action.email ?? "" : "";
+  const message = action?.status === "credentials-invalid"
+    ? "Invalid email or password."
+    : action?.status === "verification-required"
+      ? "Verify your email before signing in. You can request another verification email."
+      : action?.status === "throttled"
+        ? `Too many sign-in attempts. Try again in ${action.retryAfterSeconds} seconds.`
+        : action?.status === "error"
+          ? action.message
+          : undefined;
+
+  return (
+    <AuthShell heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel}>
+      <Form method="post" replace noValidate onSubmit={(event) => { if (pending) event.preventDefault(); }}>
+        <ErrorSummary errors={errors} />
+        {message && <p role="alert">{message}</p>}
+        {action?.status === "verification-required" && <Link className="route-link" to="/verify-email">Resend verification email</Link>}
+        <p id="email-description">Use your work email address.</p>
+        <label htmlFor="email">Email address</label>
+        <input id="email" name="email" type="email" autoComplete="email" defaultValue={email} aria-describedby="email-description" aria-invalid={errors.some((error) => error.fieldId === "email") || undefined} required />
+        <PasswordControl passwordRef={passwordRef} showPassword={showPassword} setShowPassword={setShowPassword} autoComplete="current-password" invalid={errors.some((error) => error.fieldId === "password")} />
+        <PrimaryButton type="submit" loading={pending} loadingLabel="Signing in…">Sign in</PrimaryButton>
+      </Form>
+      <p>Password reset is not available in this version.</p>
+    </AuthShell>
+  );
+}
+
+function PasswordControl({ passwordRef, showPassword, setShowPassword, autoComplete, invalid }: {
+  passwordRef?: React.RefObject<HTMLInputElement | null>;
+  showPassword: boolean;
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
+  autoComplete: "new-password" | "current-password";
+  invalid: boolean;
+}) {
+  return <><label htmlFor="password">Password</label><div className="password-control"><input ref={passwordRef} id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={autoComplete} minLength={12} maxLength={128} aria-invalid={invalid || undefined} required /><button type="button" className="focus-indicator" aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide password" : "Show password"}</button></div></>;
 }
 
 function AuthShell({ heading, headingRef, otherRoute, otherLabel, children }: {
@@ -75,7 +128,7 @@ function AuthShell({ heading, headingRef, otherRoute, otherLabel, children }: {
         <section aria-labelledby="auth-heading" className="auth-card">
           <p className="eyebrow">Secure marketer workspace</p>
           <h1 ref={headingRef} id="auth-heading" tabIndex={-1}>{heading}</h1>
-          {children ?? <p>Authentication will be available in a later setup step.</p>}
+          {children}
           <Link className="route-link" to={otherRoute}>{otherLabel}</Link>
         </section>
       </main>
