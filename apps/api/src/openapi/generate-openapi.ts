@@ -12,6 +12,7 @@ const generationConfig: ApiConfig = {
   port: 0,
   betterAuthSecret: "openapi-generation-placeholder-secret-000",
   publicOrigin: "http://127.0.0.1:0",
+  trustedProxyHops: 0,
 };
 
 const app = await NestFactory.create(AppModule.register(generationConfig), {

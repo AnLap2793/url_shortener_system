@@ -25,6 +25,7 @@ function buildAuth(config: ApiConfig, db: DbHandle["db"], queue: Queue) {
     baseURL: config.publicOrigin,
     secret: config.betterAuthSecret,
     trustedOrigins: [config.publicOrigin],
+    rateLimit: { enabled: false },
     database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
     logger: { disabled: true },
     emailAndPassword: {

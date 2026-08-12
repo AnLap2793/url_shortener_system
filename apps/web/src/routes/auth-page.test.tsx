@@ -9,12 +9,15 @@ function render(mode: "sign-in" | "sign-up") {
 }
 
 describe("public auth shell", () => {
-  it("keeps sign-in as a placeholder", () => {
+  it("renders an accessible sign-in form with current-password semantics", () => {
     const html = render("sign-in");
     expect(html).toContain('href="#main-content"');
     expect(html).toContain('href="/sign-up"');
-    expect(html).toContain('aria-live="polite"');
-    expect(html).not.toContain("<form");
+    expect(html).toContain('method="post"');
+    expect(html).toContain('autoComplete="email"');
+    expect(html).toContain('autoComplete="current-password"');
+    expect(html).toContain("Password reset is not available in this version.");
+    expect(html).not.toContain("Forgot password");
   });
 
   it("renders an accessible sign-up form with password manager semantics", () => {

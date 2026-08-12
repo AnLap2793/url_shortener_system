@@ -13,11 +13,12 @@ import type { AuthHandle } from "./better-auth-instance.js";
 
 export interface AuthenticatedRequest {
   headers: Record<string, string | string[] | undefined>;
-  actorId?: ActorId;
+  path: string;
+  readonly actorId?: ActorId;
 }
 
 interface ResponseLike {
-  setHeader(name: string, value: string): void;
+  setHeader(name: string, value: string | string[]): void;
 }
 
 const unauthenticatedProblem = {
@@ -41,11 +42,20 @@ export class SessionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     if (this.authHandle) {
       try {
-        const session = await this.authHandle.auth.api.getSession({
+        const result = await this.authHandle.auth.api.getSession({
           headers: fromNodeHeaders(request.headers),
+          returnHeaders: true,
         });
+        const cookies = result.headers.getSetCookie();
+        if (cookies.length) context.switchToHttp().getResponse<ResponseLike>().setHeader("Set-Cookie", cookies);
+        const session = result.response;
         if (session?.user?.id) {
-          request.actorId = session.user.id;
+          Object.defineProperty(request, "actorId", {
+            value: session.user.id,
+            enumerable: true,
+            configurable: false,
+            writable: false,
+          });
           return true;
         }
       } catch {
@@ -55,6 +65,6 @@ export class SessionGuard implements CanActivate {
     const response = context.switchToHttp().getResponse<ResponseLike>();
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Content-Type", "application/problem+json");
-    throw new UnauthorizedException(unauthenticatedProblem);
+    throw new UnauthorizedException({ ...unauthenticatedProblem, instance: request.path });
   }
 }

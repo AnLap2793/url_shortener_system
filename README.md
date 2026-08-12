@@ -13,7 +13,7 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'
 
 Chạy lệnh Node hai lần. Gán một giá trị cho `POSTGRES_PASSWORD`, giá trị còn lại cho `BETTER_AUTH_SECRET` trong `.env`. Không commit `.env`.
 
-`BETTER_AUTH_SECRET` phải dài ít nhất 32 ký tự. `POSTGRES_PASSWORD` nên chỉ dùng ký tự URL-safe vì được đặt trong `DATABASE_URL`.
+`BETTER_AUTH_SECRET` phải dài ít nhất 32 ký tự. `POSTGRES_PASSWORD` nên chỉ dùng ký tự URL-safe vì được đặt trong `DATABASE_URL`. Local giữ `TRUSTED_PROXY_HOPS=0`; production Render bắt buộc `TRUSTED_PROXY_HOPS=1` để Express chỉ lấy client IP qua đúng một load-balancer hop.
 
 ### 2. Build và khởi động
 
@@ -37,19 +37,21 @@ Mở `http://127.0.0.1:3000`. NestJS phục vụ React SPA và API cùng origin.
 - `POST /api/registration/sign-up`
 - `POST /api/registration/resend-verification`
 - `POST /api/registration/verify-email`
+- `POST /api/authentication/sign-in`
+- `POST /api/authentication/sign-out`
 
-Các mutation yêu cầu exact `Origin` và `Sec-Fetch-Site: same-origin`. Cooldown trả `429` với `Retry-After`; không gọi trực tiếp raw Better Auth lifecycle routes.
+Các mutation yêu cầu exact `Origin` và `Sec-Fetch-Site: same-origin`. Cooldown và login throttle trả `429` với `Retry-After`; không gọi trực tiếp raw Better Auth lifecycle routes.
 
 ### 3. Kiểm tra
 
 ```bash
 curl.exe -fsS http://127.0.0.1:3000/health/live
 curl.exe -fsS http://127.0.0.1:3000/health/ready
-curl.exe -fsS http://127.0.0.1:3000/api/auth/get-session
+curl.exe -i http://127.0.0.1:3000/api/me
 docker compose run --rm migrate
 ```
 
-Lệnh migration cuối phải thoát `0`; đây là kiểm tra idempotence.
+Fresh setup chưa đăng nhập phải trả `401` cùng `application/problem+json` cho `/api/me`. Lệnh migration cuối phải thoát `0`; đây là kiểm tra idempotence.
 
 ### 4. Logs và worker
 

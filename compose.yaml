@@ -38,8 +38,10 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-url_shortener}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-url_shortener}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+      NODE_ENV: development
       PORT: "3000"
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://127.0.0.1:3000}
+      TRUSTED_PROXY_HOPS: "0"
       WEB_DIST_DIR: /app/apps/web/dist
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"

@@ -15,13 +15,17 @@ const deniedPaths = new Set([
   "/sign-up/email",
   "/send-verification-email",
   "/verify-email",
+  "/sign-in/email",
+  "/sign-out",
+  "/get-session",
 ]);
 
 export function createAuthLifecycleDeny() {
   return (request: RequestLike, response: ResponseLike, next: Next): void => {
-    const path = request.path.startsWith("/api/auth")
+    const rawPath = request.path.startsWith("/api/auth")
       ? request.path.slice("/api/auth".length)
       : request.path;
+    const path = rawPath.length > 1 ? rawPath.replace(/\/+$/, "") : rawPath;
     if (!deniedPaths.has(path)) {
       next();
       return;

@@ -16,9 +16,18 @@ describe("raw Better Auth lifecycle denylist", () => {
     "/sign-up/email",
     "/send-verification-email",
     "/verify-email",
+    "/sign-in/email",
+    "/sign-out",
+    "/get-session",
     "/api/auth/sign-up/email",
     "/api/auth/send-verification-email",
     "/api/auth/verify-email",
+    "/api/auth/sign-in/email",
+    "/api/auth/sign-out",
+    "/api/auth/get-session",
+    "/api/auth/sign-in/email/",
+    "/api/auth/sign-out/",
+    "/api/auth/get-session/",
   ])("denies %s before the auth handler", (path) => {
     const result = invoke(path);
     expect(result.status).toHaveBeenCalledWith(404);
@@ -29,7 +38,7 @@ describe("raw Better Auth lifecycle denylist", () => {
   });
 
   it("passes unrelated lifecycle routes to Better Auth", () => {
-    const result = invoke("/get-session");
+    const result = invoke("/callback/google");
     expect(result.next).toHaveBeenCalledOnce();
     expect(result.status).not.toHaveBeenCalled();
   });

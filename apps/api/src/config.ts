@@ -10,6 +10,8 @@ export interface ApiConfig {
   publicOrigin: string;
   /** Absolute path to the built SPA; static hosting is disabled when absent. */
   webDistDir?: string;
+  /** Number of trusted reverse-proxy hops before the public client. */
+  trustedProxyHops: number;
 }
 
 const unsupportedConnectionOverrides = new Set([
@@ -70,6 +72,17 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
     }
     publicOrigin = parsedOrigin.origin;
   }
+  if (environment.NODE_ENV === "production" && new URL(publicOrigin).protocol !== "https:") {
+    throw new Error("PUBLIC_ORIGIN must use https in production");
+  }
+
+  const trustedProxyHops = Number(environment.TRUSTED_PROXY_HOPS ?? 0);
+  if (!Number.isSafeInteger(trustedProxyHops) || trustedProxyHops < 0 || trustedProxyHops > 5) {
+    throw new Error("TRUSTED_PROXY_HOPS must be an integer from 0 to 5");
+  }
+  if (environment.NODE_ENV === "production" && trustedProxyHops !== 1) {
+    throw new Error("TRUSTED_PROXY_HOPS must be 1 in production");
+  }
 
   let webDistDir: string | undefined;
   if (environment.WEB_DIST_DIR) {
@@ -78,5 +91,12 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
       throw new Error("WEB_DIST_DIR must point to a directory containing index.html");
     }
   }
-  return { databaseUrl: databaseUrl!, port, betterAuthSecret, publicOrigin, webDistDir };
+  return {
+    databaseUrl: databaseUrl!,
+    port,
+    betterAuthSecret,
+    publicOrigin,
+    webDistDir,
+    trustedProxyHops,
+  };
 }

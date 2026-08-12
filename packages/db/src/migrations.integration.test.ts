@@ -38,6 +38,7 @@ describe.skipIf(!integrationUrl)("auth migration chain", () => {
           "verification",
           "verification_email_cooldown",
           "verification_email_delivery",
+          "login_rate_limit",
         ]) {
           expect(names).toContain(expected);
         }

@@ -45,7 +45,14 @@
             }
           },
           "401": {
-            "description": "No valid session."
+            "description": "No valid session.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            }
           }
         },
         "summary": "Resolve the authenticated actor",
@@ -297,6 +304,207 @@
           "Registration"
         ]
       }
+    },
+    "/api/authentication/sign-in": {
+      "post": {
+        "operationId": "signInAuthentication",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInAuthenticationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInAuthenticationSuccessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": ""
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": ""
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/authentication/sign-out": {
+      "post": {
+        "operationId": "signOutAuthentication",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignOutAuthenticationSuccessDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Authentication"
+        ]
+      }
     }
   },
   "info": {
@@ -309,18 +517,6 @@
   "servers": [],
   "components": {
     "schemas": {
-      "MeResponseDto": {
-        "type": "object",
-        "properties": {
-          "actorId": {
-            "type": "string",
-            "description": "Canonical actor id — the Better Auth user id string."
-          }
-        },
-        "required": [
-          "actorId"
-        ]
-      },
       "ProblemDto": {
         "type": "object",
         "properties": {
@@ -359,6 +555,18 @@
           "detail",
           "instance",
           "code"
+        ]
+      },
+      "MeResponseDto": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "description": "Canonical actor id — the Better Auth user id string."
+          }
+        },
+        "required": [
+          "actorId"
         ]
       },
       "SignUpRegistrationDto": {
@@ -429,6 +637,54 @@
             "type": "string",
             "enum": [
               "verified"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "SignInAuthenticationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "marketer@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "SignInAuthenticationSuccessDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "signed-in"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "SignOutAuthenticationSuccessDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "signed-out"
             ]
           }
         },

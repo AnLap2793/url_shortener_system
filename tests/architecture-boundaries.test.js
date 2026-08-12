@@ -15,8 +15,8 @@ const rules = {
     internal: ["packages/contracts"],
     forbidden: [/^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/],
     forbiddenContent: [
-      /\/api\/auth\/(?:sign-up\/email|send-verification-email|verify-email)/,
-      /\b(?:signUpEmail|sendVerificationEmail|verifyEmail)\s*\(/,
+      /\/api\/auth\/(?:sign-up\/email|send-verification-email|verify-email|sign-in\/email|sign-out|get-session)/,
+      /\b(?:signUpEmail|sendVerificationEmail|verifyEmail|signInEmail|signOut)\s*\(/,
     ],
   },
   "apps/api": { internal: ["packages/application", "packages/db", "packages/observability"], forbidden: [/^react(?:\/|$)/, /^better-auth\/adapters(?:\/|$)/] },

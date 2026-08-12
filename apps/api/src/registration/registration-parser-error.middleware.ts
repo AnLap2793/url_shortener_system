@@ -22,7 +22,10 @@ export function registrationParserError(
   response: ResponseLike,
   next: NextFunction,
 ): void {
-  if (!request.path.startsWith("/api/registration/") || !isParserError(error)) {
+  if (
+    !["/api/registration/", "/api/authentication/"].some((prefix) => request.path.startsWith(prefix))
+    || !isParserError(error)
+  ) {
     next(error);
     return;
   }
