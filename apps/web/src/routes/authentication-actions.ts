@@ -1,5 +1,5 @@
 import { createApiClient } from "@url-shortener/contracts";
-import { redirect } from "react-router";
+import { redirect, type ShouldRevalidateFunctionArgs } from "react-router";
 
 export type SignInActionResult =
   | { status: "invalid"; errors: Array<{ fieldId: string; message: string }>; email?: string }
@@ -9,6 +9,20 @@ export type SignInActionResult =
   | { status: "error"; email?: string; message: string };
 
 export type SignOutActionResult = { status: "error"; message: string };
+
+export function shouldRevalidateProtectedSession({
+  actionResult,
+  formAction,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  if (
+    formMethod?.toUpperCase() === "POST"
+    && formAction?.endsWith("/account")
+    && (actionResult as SignOutActionResult | undefined)?.status === "error"
+  ) return false;
+  return defaultShouldRevalidate;
+}
 
 interface ActionArgs {
   request: Request;
@@ -27,6 +41,11 @@ export function safeRedirectTo(request: Request): string {
     || /%2f|%5c/i.test(value)
   ) return "/dashboard";
   try {
+    const pathSegments = value.split(/[?#]/, 1)[0]!.split("/");
+    if (pathSegments.some((segment) => {
+      const decoded = decodeURIComponent(segment);
+      return decoded === "." || decoded === "..";
+    })) return "/dashboard";
     const target = new URL(value, origin);
     if (target.origin !== origin || !protectedPaths.has(target.pathname)) return "/dashboard";
     return `${target.pathname}${target.search}`;
@@ -71,9 +90,16 @@ export async function executeSignInAction(
 }
 
 export async function signOutAction({ request }: ActionArgs): Promise<Response | SignOutActionResult> {
+  return executeSignOutAction(request, fetch);
+}
+
+export async function executeSignOutAction(
+  request: Request,
+  fetchImplementation: typeof fetch,
+): Promise<Response | SignOutActionResult> {
   try {
     const origin = new URL(request.url).origin;
-    const client = createApiClient(fetch, origin);
+    const client = createApiClient(fetchImplementation, origin);
     const result = await client.POST("/api/authentication/sign-out", {
       headers: { Origin: origin, "Sec-Fetch-Site": "same-origin" },
     });
@@ -87,8 +113,8 @@ export async function signOutAction({ request }: ActionArgs): Promise<Response |
 function validate(email: string, password: string): Array<{ fieldId: string; message: string }> {
   const errors: Array<{ fieldId: string; message: string }> = [];
   if (!/^\S+@\S+\.\S+$/.test(email)) errors.push({ fieldId: "email", message: "Enter a valid email address." });
-  if (password.length < 12 || password.length > 128) {
-    errors.push({ fieldId: "password", message: "Password must be 12–128 characters." });
+  if (password.length < 1 || password.length > 128) {
+    errors.push({ fieldId: "password", message: "Enter a password of at most 128 characters." });
   }
   return errors;
 }

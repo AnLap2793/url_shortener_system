@@ -13,6 +13,7 @@ import type { AuthHandle } from "./better-auth-instance.js";
 
 export interface AuthenticatedRequest {
   headers: Record<string, string | string[] | undefined>;
+  path: string;
   readonly actorId?: ActorId;
 }
 
@@ -64,6 +65,6 @@ export class SessionGuard implements CanActivate {
     const response = context.switchToHttp().getResponse<ResponseLike>();
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Content-Type", "application/problem+json");
-    throw new UnauthorizedException(unauthenticatedProblem);
+    throw new UnauthorizedException({ ...unauthenticatedProblem, instance: request.path });
   }
 }

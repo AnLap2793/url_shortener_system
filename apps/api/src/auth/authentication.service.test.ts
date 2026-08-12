@@ -14,7 +14,7 @@ import {
 const config = { betterAuthSecret: "x".repeat(32) } as ApiConfig;
 const request = {
   headers: { cookie: "session=value" },
-  socket: { remoteAddress: "127.0.0.1" },
+  ip: "127.0.0.1",
 };
 
 function limiter(result: Awaited<ReturnType<LoginRateLimitRepository["consume"]>>): LoginRateLimitRepository {
@@ -113,5 +113,25 @@ describe("AuthenticationService", () => {
     }), limiter({ allowed: true }));
     await expect(unavailable.signIn(request, "marketer@example.com", "password"))
       .rejects.toBeInstanceOf(ServiceUnavailableException);
+
+    const sessionFailure = new AuthenticationService(config, authHandle({
+      signInEmail: vi.fn().mockRejectedValue(APIError.from("UNAUTHORIZED", {
+        code: "FAILED_TO_CREATE_SESSION", message: "Failed to create session",
+      })),
+    }), limiter({ allowed: true }));
+    await expect(sessionFailure.signIn(request, "marketer@example.com", "password"))
+      .rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it("fails closed when Express cannot resolve a client IP", async () => {
+    const consume = vi.fn();
+    const service = new AuthenticationService(
+      config,
+      authHandle(),
+      { consume },
+    );
+    await expect(service.signIn({ headers: {} }, "marketer@example.com", "password"))
+      .rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(consume).not.toHaveBeenCalled();
   });
 });

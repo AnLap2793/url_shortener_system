@@ -13,7 +13,7 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'
 
 Chạy lệnh Node hai lần. Gán một giá trị cho `POSTGRES_PASSWORD`, giá trị còn lại cho `BETTER_AUTH_SECRET` trong `.env`. Không commit `.env`.
 
-`BETTER_AUTH_SECRET` phải dài ít nhất 32 ký tự. `POSTGRES_PASSWORD` nên chỉ dùng ký tự URL-safe vì được đặt trong `DATABASE_URL`.
+`BETTER_AUTH_SECRET` phải dài ít nhất 32 ký tự. `POSTGRES_PASSWORD` nên chỉ dùng ký tự URL-safe vì được đặt trong `DATABASE_URL`. Local giữ `TRUSTED_PROXY_HOPS=0`; production Render bắt buộc `TRUSTED_PROXY_HOPS=1` để Express chỉ lấy client IP qua đúng một load-balancer hop.
 
 ### 2. Build và khởi động
 
@@ -47,11 +47,11 @@ Các mutation yêu cầu exact `Origin` và `Sec-Fetch-Site: same-origin`. Coold
 ```bash
 curl.exe -fsS http://127.0.0.1:3000/health/live
 curl.exe -fsS http://127.0.0.1:3000/health/ready
-curl.exe -fsS http://127.0.0.1:3000/api/me
+curl.exe -i http://127.0.0.1:3000/api/me
 docker compose run --rm migrate
 ```
 
-Lệnh migration cuối phải thoát `0`; đây là kiểm tra idempotence.
+Fresh setup chưa đăng nhập phải trả `401` cùng `application/problem+json` cho `/api/me`. Lệnh migration cuối phải thoát `0`; đây là kiểm tra idempotence.
 
 ### 4. Logs và worker
 

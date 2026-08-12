@@ -9,6 +9,7 @@ import { registrationParserError } from "./registration/registration-parser-erro
 import { createOriginCheck } from "./security/origin-check.middleware.js";
 
 interface ExpressLike {
+  set(name: string, value: unknown): void;
   use(path: string, handler: unknown): void;
   use(handler: unknown): void;
   all(path: string, handler: unknown): void;
@@ -34,6 +35,7 @@ export async function bootstrap(
     logger: false,
   });
   const server = app.getHttpAdapter().getInstance() as ExpressLike;
+  server.set("trust proxy", config.trustedProxyHops);
   server.use("/api", createOriginCheck(config.publicOrigin));
   server.use("/api/auth", createAuthLifecycleDeny());
   server.all("/api/auth/*splat", toNodeHandler(authHandle.auth));

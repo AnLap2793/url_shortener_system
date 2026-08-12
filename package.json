@@ -30,9 +30,10 @@
     "test:e2e": "playwright test",
     "verify:toolchain": "node tests/verify-toolchain.js",
     "generate:contracts": "npm run build:packages && npm run build --workspace=@url-shortener/api && node apps/api/dist/openapi/generate-openapi.js && openapi-typescript packages/contracts/openapi.json -o packages/contracts/src/generated/api-types.ts",
-    "verify:contracts": "npm run generate:contracts && git diff --exit-code -- packages/contracts/openapi.json packages/contracts/src/generated && node tests/verify-generated-artifacts-tracked.js",
+    "verify:contracts": "node tests/verify-contracts.js && node tests/verify-generated-artifacts-tracked.js",
+    "verify:migrations": "node tests/verify-migrations.js",
     "test:unit": "vitest run",
-    "check": "npm run verify:toolchain && npm run typecheck && npm test && npm run test:architecture && npm run build && npm run verify:contracts"
+    "check": "npm run verify:toolchain && npm run typecheck && npm test && npm run test:architecture && npm run build && npm run verify:contracts && npm run verify:migrations"
   },
   "dependencies": {
     "@nestjs/common": "11.1.28",

@@ -48,6 +48,23 @@ describe.skipIf(!integrationUrl)("PostgreSQL login rate limit", () => {
       }
     }), 30_000);
 
+  it("uses one lock order when concurrent callers provide reversed scopes", () =>
+    withDatabase(async (url) => {
+      const first = new PgLoginRateLimitRepository(url);
+      const second = new PgLoginRateLimitRepository(url);
+      const account = request("account", "f", 2);
+      const ip = request("ip", "9", 2);
+      try {
+        const results = await Promise.all([
+          first.consume([account, ip]),
+          second.consume([ip, account]),
+        ]);
+        expect(results.every(({ allowed }) => allowed)).toBe(true);
+      } finally {
+        await Promise.all([first.close(), second.close()]);
+      }
+    }), 30_000);
+
   it("rolls back admitted scopes when another scope is throttled and resets expired windows", () =>
     withDatabase(async (url) => {
       const repository = new PgLoginRateLimitRepository(url);

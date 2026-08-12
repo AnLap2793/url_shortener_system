@@ -4,7 +4,7 @@ baseline_commit: 4ddddb7f
 
 # Story 1.5: Đăng nhập và quản lý session
 
-Status: review
+Status: done
 
 ## Story
 
@@ -130,6 +130,24 @@ Tôi muốn đăng nhập, sử dụng authenticated workspace và đăng xuất
 - [x] [High][Patch] Better Auth `signOut` nuốt failure xóa DB session nhưng vẫn xóa browser cookie. Facade giờ revoke canonical token trước `signOut`; revoke failure trả `503`, không gọi cookie-clear; service test phủ failure.
 - [x] [Medium][Patch] Safe redirect cần từ chối encoded slash/backslash và external form. Parser dùng strict protected-path allowlist, same-origin parse, query preservation và table-driven tests.
 - [x] [Medium][Patch] API process boundary 2-second polling không đủ cho cold start sau module additions. Test dùng 5-second polling/15-second test deadline, giữ sentinel/no-secret assertions.
+- [x] [Review][Patch] Cấu hình exact trusted proxy chain cho Render và derive client IP từ forwarding chain đã xác thực; không dùng shared proxy peer hoặc client-supplied forwarding header [apps/api/src/auth/authentication.service.ts:43]
+- [x] [Review][Patch] Chỉ map `INVALID_EMAIL_OR_PASSWORD` thành `401`; Better Auth API errors khác phải thành generic `503` [apps/api/src/auth/authentication.service.ts:77]
+- [x] [Review][Patch] Sign-in phải nhận password non-empty tối đa 128 ký tự để mọi wrong password đi qua generic credential path [apps/api/src/auth/authentication.dto.ts:13]
+- [x] [Review][Patch] Tắt Better Auth built-in production rate limiter; PostgreSQL limiter là policy owner duy nhất [apps/api/src/auth/better-auth-instance.ts:24]
+- [x] [Review][Patch] Không dùng shared `"unknown"` IP bucket khi socket address thiếu; fail closed thành dependency error [apps/api/src/auth/authentication.service.ts:43]
+- [x] [Review][Patch] Chuẩn hóa trailing slash trước raw lifecycle denylist để boundary luôn chạy trước Better Auth [apps/api/src/auth/auth-lifecycle-deny.middleware.ts:25]
+- [x] [Review][Patch] Sắp xếp limiter scopes theo canonical lock order trước transaction để repository không deadlock với caller đảo thứ tự [packages/db/src/login-rate-limit-repository.ts:36]
+- [x] [Review][Patch] Shutdown phải await hoặc xử lý hoàn tất limiter pool close; không để close tiếp tục ngoài lifecycle sau timeout race [apps/api/src/auth/login-rate-limit-lifecycle.provider.ts:12]
+- [x] [Review][Patch] `/api/me` 401 phải có RFC 9457 `instance` và generated `application/problem+json` contract [apps/api/src/auth/session.guard.ts:23]
+- [x] [Review][Patch] Tách sign-in/sign-out success DTO để generated client không chấp nhận trạng thái bất khả thi [apps/api/src/auth/authentication.dto.ts:19]
+- [x] [Review][Patch] Bổ sung real HTTP/PostgreSQL evidence cho invalid credentials, throttle, CSRF no-side-effect và cookie/session success boundaries; unit tests phủ auth outage và revoke/session dependency failure [apps/api/src/registration/registration.integration.test.ts:236]
+- [x] [Review][Patch] Ngăn failed sign-out revalidate protected session loader; giữ Account khi auth dependency đang lỗi [apps/web/src/router.tsx:24]
+- [x] [Review][Patch] Đồng bộ Web sign-in password `1–128`, normalized email DOM và generated-client request protocol [apps/web/src/routes/authentication-actions.ts:49]
+- [x] [Review][Patch] Reject literal/encoded dot-segment redirect thay vì chấp nhận URL canonicalization [apps/web/src/routes/authentication-actions.ts:30]
+- [x] [Review][Patch] Focus main landmark sau protected navigation, không cướp focus ở initial load [apps/web/src/components/app-shell.tsx:42]
+- [x] [Review][Patch] Khai báo `Cache-Control: no-store` trong OpenAPI auth success/error responses và regenerate contracts [apps/api/src/auth/authentication.controller.ts:55]
+- [x] [Review][Patch] Đổi migration limiter sang monotonic `0005`, xác thực journal/snapshot chain và clean-generation gate [tests/verify-migrations.js:1]
+- [x] [Review][Patch] Sửa unauthenticated `/api/me` README smoke thành expected `401`, không dùng `curl -f` [README.md:50]
 
 ## Dev Notes
 
@@ -169,7 +187,8 @@ Tôi muốn đăng nhập, sử dụng authenticated workspace và đăng xuất
 
 - Real PostgreSQL required cho migration, atomic dual-scope limiter, verified/unverified session lifecycle, revoke invalidation và raw denylist.
 - Browser E2E dùng intercepted facade/session responses vì shell server cố ý có DB unreachable; nó chứng minh UI/routing, không thay thế cookie/session API integration.
-- Direct current gaps retained for future hardening: không có production HTTPS integration assertion cho `Secure; SameSite=Lax`; no API integration case riêng cho absent-email/wrong-password generic body; no direct facade CSRF matrix/no-side-effect assertion; no telemetry sink assertion beyond structured event.
+- HTTP/PostgreSQL integration phủ short/long invalid credentials, account throttle, integer `Retry-After`, CSRF no-side-effect, unauthenticated RFC 9457 và cookie/session lifecycle.
+- Direct current gap retained for future hardening: production HTTPS integration chưa assertion riêng `Secure; SameSite=Lax`; telemetry mới là structured sanitized event, chưa có collector sink.
 
 ### Project Structure Notes
 
@@ -203,7 +222,7 @@ claude-fable-5 (Claude Code)
 - Local Node was `22.21.1`, below project pin `>=22.22.0`; normal `npm ci --dry-run` correctly rejected engine. Local validation used explicit `npm_config_engine_strict=false`; Docker image/CI pin Node `22.22.0`.
 - Playwright Chromium was absent on first local run; installed browser then E2E passed. This local Windows 10 run is supplemental; CI/Linux remains acceptance platform.
 - Docker local port `5432` unavailable; `.env` uses ignored `POSTGRES_PORT=5433`. Compose app requires `NODE_ENV=development` for local HTTP public origin; production rejects HTTP by design.
-- `npm run check` fails before commit only at `verify:contracts` because the intentional generated OpenAPI/types diff is uncommitted. Generator/typecheck/build pass; clean-tree contract gate is expected after commit.
+- Generated OpenAPI/types được tái sinh bằng `npm run generate:contracts`; `verify:contracts` là clean-generation gate và phải chạy xanh trước khi Story chuyển `done`.
 
 ### Completion Notes List
 
@@ -216,24 +235,23 @@ claude-fable-5 (Claude Code)
 
 ### Validation
 
-Executed against the uncommitted Story 1.5 checkout on 2026-08-11:
+Executed against the uncommitted Story 1.5 checkout on 2026-08-12:
 
-- `INTEGRATION_DATABASE_URL=... npm test`: **41 files, 198 tests passed** with local PostgreSQL Docker.
+- `INTEGRATION_DATABASE_URL=... npm run check`: **42 files, 210 tests passed** with local PostgreSQL Docker; toolchain, typecheck, architecture, build, generated contracts and migration consistency gates passed.
 - `npm run test:e2e`: **29 passed**.
-- `npm run typecheck`, `npm run test:architecture`, package/API/web builds: passed.
-- PostgreSQL limiter/auth lifecycle focused suite: passed.
-- Docker Compose: PostgreSQL healthy; migration service exited `0`; app `/health/live` and `/health/ready` returned `200`; repeated migration exited `0`.
-- `npm ci --dry-run --ignore-scripts`: local override needed only because host Node `22.21.1` is below pin; Docker uses required Node `22.22.0`.
+- Adversarial code-review rerun: no verified actionable correctness/security defects in scoped auth, Web, limiter and migration gate changes.
+- Docker Compose: PostgreSQL and app healthy; migration service exited `0`; repeated migration generation found no schema drift.
+- Windows Playwright remains supplemental; CI/Linux is the browser acceptance environment.
 
 ### File List
 
 - NEW: `_bmad-output/implementation-artifacts/1-5-dang-nhap-va-quan-ly-session.md`
 - NEW: `packages/application/src/{login-rate-limit.ts,login-rate-limit.test.ts}`
 - NEW: `packages/db/src/{login-rate-limit-repository.ts,login-rate-limit-repository.integration.test.ts,schema/login-rate-limit-schema.ts}`
-- NEW: `packages/db/migrations/{0003_talented_gorilla_man.sql,meta/0003_snapshot.json}`
+- NEW: `packages/db/migrations/{0005_talented_gorilla_man.sql,meta/0005_snapshot.json}`
 - NEW: `apps/api/src/auth/{authentication.controller.ts,authentication.dto.ts,authentication.service.ts,authentication.service.test.ts,authentication-problem.filter.ts,login-rate-limit-lifecycle.provider.ts,session.guard.test.ts}`
 - NEW: `apps/web/src/routes/{authentication-actions.ts,authentication-actions.test.ts}`
-- NEW: `tests/e2e/authentication-flow.spec.ts`
+- NEW: `tests/{verify-migrations.js,e2e/authentication-flow.spec.ts}`
 - UPDATE: `README.md`, `compose.yaml`, `_bmad-output/{planning-artifacts/epics.md,implementation-artifacts/sprint-status.yaml}`
 - UPDATE: `packages/application/src/index.ts`, `packages/db/{drizzle.config.ts,src/index.ts,src/migrations.integration.test.ts,migrations/meta/_journal.json}`
 - UPDATE: `apps/api/src/{app.module.ts,config.ts,config.test.ts,tokens.ts,registration/registration-parser-error.middleware.ts,registration/registration.integration.test.ts}`
@@ -245,8 +263,9 @@ Executed against the uncommitted Story 1.5 checkout on 2026-08-11:
 ## Change Log
 
 - 2026-08-11: Rebuilt Story 1.5 artifact to match Story 1.3–1.4 traceability, BDD criteria, implementation record, review provenance and validation evidence after implementation.
+- 2026-08-12: Applied all adversarial review patches, added generated contract/migration gates, passed full PostgreSQL and browser validation, and marked Story done.
 
 ## Unresolved Questions
 
 - `login_throttle_total` is a structured sanitized event, not a configured scrape/alert metric. Add a collector contract only when operations selects Prometheus/OTel or equivalent.
-- Add explicit production-HTTPS cookie attribute, absent-email/wrong-password facade, throttle HTTP and facade-CSRF no-side-effect integration cases if the review gate requires exhaustive HTTP evidence.
+- Add explicit production-HTTPS `Secure; SameSite=Lax` cookie integration assertion when CI provides a trusted TLS termination test boundary.

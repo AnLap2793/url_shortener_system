@@ -14,7 +14,7 @@ import type { AuthHandle } from "./better-auth-instance.js";
 
 interface RequestHeaders {
   headers: Record<string, string | string[] | undefined>;
-  socket?: { remoteAddress?: string };
+  ip?: string;
 }
 
 export class InvalidCredentialsError extends Error {}
@@ -40,7 +40,10 @@ export class AuthenticationService {
 
   async signIn(request: RequestHeaders, emailInput: string, password: string): Promise<string[]> {
     const email = emailInput.trim().toLowerCase();
-    const sourceIp = request.socket?.remoteAddress ?? "unknown";
+    const sourceIp = request.ip;
+    if (!sourceIp) {
+      throw new ServiceUnavailableException("Authentication is temporarily unavailable");
+    }
     let admission;
     try {
       admission = await this.#consumeRateLimit.execute([
@@ -79,7 +82,8 @@ export class AuthenticationService {
         throw new ServiceUnavailableException("Authentication is temporarily unavailable");
       }
       if (error.body?.code === "EMAIL_NOT_VERIFIED") throw new EmailVerificationRequiredError();
-      throw new InvalidCredentialsError();
+      if (error.body?.code === "INVALID_EMAIL_OR_PASSWORD") throw new InvalidCredentialsError();
+      throw new ServiceUnavailableException("Authentication is temporarily unavailable");
     }
   }
 

@@ -25,6 +25,9 @@ describe("raw Better Auth lifecycle denylist", () => {
     "/api/auth/sign-in/email",
     "/api/auth/sign-out",
     "/api/auth/get-session",
+    "/api/auth/sign-in/email/",
+    "/api/auth/sign-out/",
+    "/api/auth/get-session/",
   ])("denies %s before the auth handler", (path) => {
     const result = invoke(path);
     expect(result.status).toHaveBeenCalledWith(404);

@@ -35,12 +35,14 @@ export class PgLoginRateLimitRepository implements LoginRateLimitRepository {
 
   async consume(requests: LoginRateLimitRequest[]): Promise<LoginRateLimitResult> {
     this.validateRequests(requests);
+    const orderedRequests = [...requests].sort((left, right) =>
+      left.scope.localeCompare(right.scope) || left.keyDigest.localeCompare(right.keyDigest));
     const client = await this.#pool.connect();
     try {
       await client.query("BEGIN");
       const rejectedScopes: LoginRateLimitScope[] = [];
       let retryAfterSeconds = 1;
-      for (const request of requests) {
+      for (const request of orderedRequests) {
         const admitted = await client.query<AllowedRow>(
           `INSERT INTO login_rate_limit AS limiter (scope, key_digest, window_started_at, attempts)
            VALUES ($1, $2, clock_timestamp(), 1)

@@ -93,8 +93,8 @@ function SignInForm({ action, heading, headingRef, otherRoute, otherLabel, pendi
         {action?.status === "verification-required" && <Link className="route-link" to="/verify-email">Resend verification email</Link>}
         <p id="email-description">Use your work email address.</p>
         <label htmlFor="email">Email address</label>
-        <input id="email" name="email" type="email" autoComplete="email" defaultValue={email} aria-describedby="email-description" aria-invalid={errors.some((error) => error.fieldId === "email") || undefined} required />
-        <PasswordControl passwordRef={passwordRef} showPassword={showPassword} setShowPassword={setShowPassword} autoComplete="current-password" invalid={errors.some((error) => error.fieldId === "password")} />
+        <input key={email} id="email" name="email" type="email" autoComplete="email" defaultValue={email} aria-describedby="email-description" aria-invalid={errors.some((error) => error.fieldId === "email") || undefined} required />
+        <PasswordControl passwordRef={passwordRef} showPassword={showPassword} setShowPassword={setShowPassword} autoComplete="current-password" minLength={1} invalid={errors.some((error) => error.fieldId === "password")} />
         <PrimaryButton type="submit" loading={pending} loadingLabel="Signing in…">Sign in</PrimaryButton>
       </Form>
       <p>Password reset is not available in this version.</p>
@@ -102,14 +102,15 @@ function SignInForm({ action, heading, headingRef, otherRoute, otherLabel, pendi
   );
 }
 
-function PasswordControl({ passwordRef, showPassword, setShowPassword, autoComplete, invalid }: {
+function PasswordControl({ passwordRef, showPassword, setShowPassword, autoComplete, minLength = 12, invalid }: {
   passwordRef?: React.RefObject<HTMLInputElement | null>;
   showPassword: boolean;
   setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
   autoComplete: "new-password" | "current-password";
+  minLength?: number;
   invalid: boolean;
 }) {
-  return <><label htmlFor="password">Password</label><div className="password-control"><input ref={passwordRef} id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={autoComplete} minLength={12} maxLength={128} aria-invalid={invalid || undefined} required /><button type="button" className="focus-indicator" aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide password" : "Show password"}</button></div></>;
+  return <><label htmlFor="password">Password</label><div className="password-control"><input ref={passwordRef} id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={autoComplete} minLength={minLength} maxLength={128} aria-invalid={invalid || undefined} required /><button type="button" className="focus-indicator" aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide password" : "Show password"}</button></div></>;
 }
 
 function AuthShell({ heading, headingRef, otherRoute, otherLabel, children }: {

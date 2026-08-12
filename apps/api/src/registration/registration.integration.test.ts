@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import pg from "pg";
-import { createVerificationEmailCooldownKey } from "@url-shortener/application";
+import {
+  createLoginRateLimitKey,
+  createVerificationEmailCooldownKey,
+} from "@url-shortener/application";
 import { runMigrations } from "@url-shortener/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootstrap } from "../bootstrap.js";
@@ -43,6 +46,7 @@ describe.skipIf(!integrationUrl)("registration facade", () => {
       port,
       publicOrigin: baseUrl,
       betterAuthSecret: "integration-secret-0123456789abcdef-xyz",
+      trustedProxyHops: 0,
     };
     const app = await bootstrap(config);
     await app.listen(port, "127.0.0.1");
@@ -233,6 +237,68 @@ describe.skipIf(!integrationUrl)("registration facade", () => {
     expect(await throttled.json()).toMatchObject({ status: 429, code: "VERIFICATION_COOLDOWN" });
   });
 
+  it("keeps invalid credentials generic and rejects CSRF before limiter mutation", async () => {
+    const email = `missing-${randomUUID().slice(0, 8)}@example.com`;
+    for (const password of ["wrong", "wrong-password-long-enough"]) {
+      const invalid = await post("/api/authentication/sign-in", { email, password });
+      expect(invalid.status).toBe(401);
+      expect(invalid.headers.get("set-cookie")).toBeNull();
+      expect(await invalid.json()).toMatchObject({
+        code: "INVALID_CREDENTIALS",
+        instance: "/api/authentication/sign-in",
+      });
+    }
+
+    const digest = createLoginRateLimitKey(
+      "account",
+      email,
+      "integration-secret-0123456789abcdef-xyz",
+    );
+    const client = new pg.Client({ connectionString: databaseUrl });
+    await client.connect();
+    try {
+      const before = await client.query(
+        "SELECT attempts FROM login_rate_limit WHERE scope = 'account' AND key_digest = $1",
+        [digest],
+      );
+      expect(before.rows[0]?.attempts).toBe(2);
+      const rejected = await fetch(`${baseUrl}/api/authentication/sign-in`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password: "wrong" }),
+      });
+      expect(rejected.status).toBe(403);
+      const after = await client.query(
+        "SELECT attempts FROM login_rate_limit WHERE scope = 'account' AND key_digest = $1",
+        [digest],
+      );
+      expect(after.rows[0]?.attempts).toBe(2);
+    } finally {
+      await client.end();
+    }
+  }, 30_000);
+
+  it("returns HTTP throttle metadata without calling Better Auth again", async () => {
+    const email = `throttle-${randomUUID().slice(0, 8)}@example.com`;
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const invalid = await post("/api/authentication/sign-in", {
+        email,
+        password: "wrong-password-long-enough",
+      });
+      expect(invalid.status).toBe(401);
+    }
+    const throttled = await post("/api/authentication/sign-in", {
+      email,
+      password: "wrong-password-long-enough",
+    });
+    expect(throttled.status).toBe(429);
+    expect(throttled.headers.get("retry-after")).toMatch(/^\d+$/);
+    expect(await throttled.json()).toMatchObject({
+      code: "LOGIN_THROTTLED",
+      instance: "/api/authentication/sign-in",
+    });
+  }, 30_000);
+
   it("verifies a valid token, rejects invalid tokens, and only then allows facade sign-in", async () => {
     const email = `verify-${randomUUID().slice(0, 8)}@example.com`;
     const password = "correct-horse-battery-staple";
@@ -257,12 +323,20 @@ describe.skipIf(!integrationUrl)("registration facade", () => {
       expect(verified.headers.get("set-cookie")).toBeNull();
       expect(await verified.json()).toEqual({ status: "verified" });
       expect((await post("/api/registration/verify-email", { token })).status).toBe(200);
-      expect((await fetch(`${baseUrl}/api/me`)).status).toBe(401);
+      const unauthenticated = await fetch(`${baseUrl}/api/me`);
+      expect(unauthenticated.status).toBe(401);
+      expect(unauthenticated.headers.get("content-type")).toMatch(/^application\/problem\+json/);
+      expect(await unauthenticated.json()).toMatchObject({
+        code: "UNAUTHENTICATED",
+        instance: "/api/me",
+      });
 
       const signedIn = await post("/api/authentication/sign-in", { email, password });
       expect(signedIn.status).toBe(200);
       expect(signedIn.headers.get("cache-control")).toBe("no-store");
       expect(signedIn.headers.get("set-cookie")).toMatch(/HttpOnly/i);
+      expect(signedIn.headers.get("set-cookie")).toMatch(/SameSite=Lax/i);
+      expect(signedIn.headers.get("set-cookie")).not.toMatch(/;\s*Secure/i);
       expect(await signedIn.json()).toEqual({ status: "signed-in" });
       const cookie = signedIn.headers.get("set-cookie")!.split(";", 1)[0]!;
       expect((await fetch(`${baseUrl}/api/me`, { headers: { cookie } })).status).toBe(200);

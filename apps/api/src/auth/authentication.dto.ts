@@ -10,15 +10,20 @@ export class SignInAuthenticationDto {
   @Matches(betterAuthEmailPattern)
   email!: string;
 
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty({ minLength: 1, maxLength: 128, writeOnly: true })
   @IsString()
-  @Length(12, 128)
+  @Length(1, 128)
   password!: string;
 }
 
-export class AuthenticationSuccessDto {
-  @ApiProperty({ enum: ["signed-in", "signed-out"] })
-  status!: "signed-in" | "signed-out";
+export class SignInAuthenticationSuccessDto {
+  @ApiProperty({ enum: ["signed-in"] })
+  status!: "signed-in";
+}
+
+export class SignOutAuthenticationSuccessDto {
+  @ApiProperty({ enum: ["signed-out"] })
+  status!: "signed-out";
 }
 
 export { ProblemDto };

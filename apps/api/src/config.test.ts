@@ -80,11 +80,24 @@ describe("API configuration", () => {
   it("validates PUBLIC_ORIGIN and defaults to the loopback origin", () => {
     const base = { DATABASE_URL: validDatabaseUrl, BETTER_AUTH_SECRET: "x".repeat(32) };
     expect(loadConfig({ ...base, PORT: "4173" }).publicOrigin).toBe("http://127.0.0.1:4173");
+    expect(loadConfig(base).trustedProxyHops).toBe(0);
     expect(loadConfig({ ...base, PUBLIC_ORIGIN: "https://links.example.com" }).publicOrigin).toBe(
       "https://links.example.com",
     );
     expect(() => loadConfig({ ...base, NODE_ENV: "production", PUBLIC_ORIGIN: "http://links.example.com" }))
       .toThrow("PUBLIC_ORIGIN must use https in production");
+    expect(() => loadConfig({ ...base, NODE_ENV: "production", PUBLIC_ORIGIN: "https://links.example.com" }))
+      .toThrow("TRUSTED_PROXY_HOPS must be 1 in production");
+    expect(loadConfig({
+      ...base,
+      NODE_ENV: "production",
+      PUBLIC_ORIGIN: "https://links.example.com",
+      TRUSTED_PROXY_HOPS: "1",
+    }).trustedProxyHops).toBe(1);
+    for (const value of ["-1", "1.5", "6", "invalid"]) {
+      expect(() => loadConfig({ ...base, TRUSTED_PROXY_HOPS: value }))
+        .toThrow("TRUSTED_PROXY_HOPS must be an integer from 0 to 5");
+    }
     for (const invalid of ["not-a-url", "ftp://x.example", "https://x.example/path", "https://x.example/"]) {
       expect(() => loadConfig({ ...base, PUBLIC_ORIGIN: invalid }), invalid).toThrow(
         "PUBLIC_ORIGIN must be an absolute http(s) origin without a path",

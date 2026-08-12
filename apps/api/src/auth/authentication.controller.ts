@@ -20,9 +20,10 @@ import {
 } from "@nestjs/swagger";
 import { registrationProblem } from "../registration/registration-problem.js";
 import {
-  AuthenticationSuccessDto,
   ProblemDto,
   SignInAuthenticationDto,
+  SignInAuthenticationSuccessDto,
+  SignOutAuthenticationSuccessDto,
 } from "./authentication.dto.js";
 import { AuthenticationProblemFilter } from "./authentication-problem.filter.js";
 import {
@@ -34,7 +35,7 @@ import {
 
 interface RequestLike {
   headers: Record<string, string | string[] | undefined>;
-  socket?: { remoteAddress?: string };
+  ip?: string;
 }
 
 interface ResponseLike {
@@ -50,6 +51,9 @@ const validationPipe = new ValidationPipe({
 const problemContent = {
   "application/problem+json": { schema: { $ref: getSchemaPath(ProblemDto) } },
 };
+const noStoreHeaders = {
+  "Cache-Control": { schema: { type: "string", example: "no-store" } },
+};
 
 @Controller("api/authentication")
 @ApiExtraModels(ProblemDto)
@@ -62,13 +66,17 @@ export class AuthenticationController {
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
   @ApiOperation({ operationId: "signInAuthentication" })
-  @ApiOkResponse({ type: AuthenticationSuccessDto })
-  @ApiResponse({ status: 400, content: problemContent })
-  @ApiResponse({ status: 401, content: problemContent })
-  @ApiResponse({ status: 403, content: problemContent })
-  @ApiResponse({ status: 413, content: problemContent })
-  @ApiResponse({ status: 429, content: problemContent, headers: { "Retry-After": { schema: { type: "integer" } } } })
-  @ApiResponse({ status: 503, content: problemContent })
+  @ApiOkResponse({ type: SignInAuthenticationSuccessDto, headers: noStoreHeaders })
+  @ApiResponse({ status: 400, content: problemContent, headers: noStoreHeaders })
+  @ApiResponse({ status: 401, content: problemContent, headers: noStoreHeaders })
+  @ApiResponse({ status: 403, content: problemContent, headers: noStoreHeaders })
+  @ApiResponse({ status: 413, content: problemContent, headers: noStoreHeaders })
+  @ApiResponse({
+    status: 429,
+    content: problemContent,
+    headers: { ...noStoreHeaders, "Retry-After": { schema: { type: "integer" } } },
+  })
+  @ApiResponse({ status: 503, content: problemContent, headers: noStoreHeaders })
   async signIn(
     @Req() request: RequestLike,
     @Body() body: SignInAuthenticationDto,
@@ -97,8 +105,8 @@ export class AuthenticationController {
   @HttpCode(200)
   @Header("Cache-Control", "no-store")
   @ApiOperation({ operationId: "signOutAuthentication" })
-  @ApiOkResponse({ type: AuthenticationSuccessDto })
-  @ApiResponse({ status: 503, content: problemContent })
+  @ApiOkResponse({ type: SignOutAuthenticationSuccessDto, headers: noStoreHeaders })
+  @ApiResponse({ status: 503, content: problemContent, headers: noStoreHeaders })
   async signOut(@Req() request: RequestLike, @Res({ passthrough: true }) response: ResponseLike) {
     try {
       const cookies = await this.authentication.signOut(request);

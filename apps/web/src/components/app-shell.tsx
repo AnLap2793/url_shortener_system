@@ -27,6 +27,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef<HTMLDialogElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPath = useRef(location.pathname);
   const currentLabel =
     navigationItems.find((item) => location.pathname.startsWith(item.to))?.label ?? "Workspace";
 
@@ -36,6 +38,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (drawerOpen && !drawer.open) drawer.showModal();
     if (!drawerOpen && drawer.open) drawer.close();
   }, [drawerOpen]);
+
+  useEffect(() => {
+    if (previousPath.current !== location.pathname) mainRef.current?.focus();
+    previousPath.current = location.pathname;
+  }, [location.pathname]);
 
   useEffect(() => {
     // The drawer chrome is display:none from 768px up; close it on breakpoint
@@ -69,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav aria-label="Primary" className="app-sidebar">
           <ul className="nav-list">{navigationLinks()}</ul>
         </nav>
-        <main id="main-content" tabIndex={-1} className="app-main">
+        <main ref={mainRef} id="main-content" tabIndex={-1} className="app-main">
           {children}
         </main>
       </div>

@@ -47,6 +47,7 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
       port,
       betterAuthSecret: "integration-secret-0123456789abcdef-xyz",
       publicOrigin: baseUrl,
+      trustedProxyHops: 0,
     };
     // Boot through the REAL composition root: any body-parser reordering must
     // fail this suite (AC3 ordering regression).

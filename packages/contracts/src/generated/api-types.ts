@@ -137,10 +137,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        MeResponseDto: {
-            /** @description Canonical actor id — the Better Auth user id string. */
-            actorId: string;
-        };
         ProblemDto: {
             type: string;
             title: string;
@@ -151,6 +147,10 @@ export interface components {
             fieldErrors?: {
                 [key: string]: string[];
             };
+        };
+        MeResponseDto: {
+            /** @description Canonical actor id — the Better Auth user id string. */
+            actorId: string;
         };
         SignUpRegistrationDto: {
             /**
@@ -186,9 +186,13 @@ export interface components {
             email: string;
             password: string;
         };
-        AuthenticationSuccessDto: {
+        SignInAuthenticationSuccessDto: {
             /** @enum {string} */
-            status: "signed-in" | "signed-out";
+            status: "signed-in";
+        };
+        SignOutAuthenticationSuccessDto: {
+            /** @enum {string} */
+            status: "signed-out";
         };
     };
     responses: never;
@@ -255,7 +259,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDto"];
+                };
             };
         };
     };
@@ -436,14 +442,16 @@ export interface operations {
         responses: {
             200: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthenticationSuccessDto"];
+                    "application/json": components["schemas"]["SignInAuthenticationSuccessDto"];
                 };
             };
             400: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -452,6 +460,7 @@ export interface operations {
             };
             401: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -460,6 +469,7 @@ export interface operations {
             };
             403: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -468,6 +478,7 @@ export interface operations {
             };
             413: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -476,6 +487,7 @@ export interface operations {
             };
             429: {
                 headers: {
+                    "Cache-Control"?: string;
                     "Retry-After"?: number;
                     [name: string]: unknown;
                 };
@@ -485,6 +497,7 @@ export interface operations {
             };
             503: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -504,14 +517,16 @@ export interface operations {
         responses: {
             200: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthenticationSuccessDto"];
+                    "application/json": components["schemas"]["SignOutAuthenticationSuccessDto"];
                 };
             };
             503: {
                 headers: {
+                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {

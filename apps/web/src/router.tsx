@@ -1,6 +1,10 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { AccountPage } from "./routes/account-page.js";
-import { signInAction, signOutAction } from "./routes/authentication-actions.js";
+import {
+  shouldRevalidateProtectedSession,
+  signInAction,
+  signOutAction,
+} from "./routes/authentication-actions.js";
 import { AuthPage } from "./routes/auth-page.js";
 import { DashboardPage } from "./routes/dashboard-page.js";
 import { LinksPage } from "./routes/links-page.js";
@@ -17,6 +21,7 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedLayout />,
     loader: createSessionLoader(),
+    shouldRevalidate: shouldRevalidateProtectedSession,
     hydrateFallbackElement: <p className="visually-hidden">Loading…</p>,
     children: [
       { path: "/dashboard", element: <DashboardPage /> },
