@@ -46,6 +46,15 @@ describe.skipIf(!integrationUrl)("auth migration chain", () => {
           "SELECT data_type FROM information_schema.columns WHERE table_name = 'user' AND column_name = 'id'",
         );
         expect(idType.rows[0]?.data_type).toBe("text");
+        const accountIdentityConstraint = await target.query(
+          `SELECT constraint_name
+           FROM information_schema.table_constraints
+           WHERE table_schema = 'public'
+             AND table_name = 'account'
+             AND constraint_type = 'UNIQUE'
+             AND constraint_name = 'account_provider_id_account_id_unique'`,
+        );
+        expect(accountIdentityConstraint.rowCount).toBe(1);
       } finally {
         await target.end();
       }

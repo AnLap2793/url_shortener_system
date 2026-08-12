@@ -12,14 +12,14 @@ const rules = {
   "packages/contracts": { internal: [], forbidden: [/^(?!openapi-fetch(?:\/|$)).+/] },
   "packages/observability": { internal: [], forbidden: [/^react(?:\/|$)/, /^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/] },
   "apps/web": {
-    internal: ["packages/contracts"],
+    internal: ["packages/contracts", "packages/domain"],
     forbidden: [/^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/],
     forbiddenContent: [
-      /\/api\/auth\/(?:sign-up\/email|send-verification-email|verify-email|sign-in\/email|sign-out|get-session)/,
-      /\b(?:signUpEmail|sendVerificationEmail|verifyEmail|signInEmail|signOut)\s*\(/,
+      /\/api\/auth\/(?:sign-up\/email|send-verification-email|verify-email|sign-in\/(?:email|social)|sign-out|get-session)/,
+      /\b(?:signUpEmail|sendVerificationEmail|verifyEmail|signInEmail|signInSocial|signOut)\s*\(/,
     ],
   },
-  "apps/api": { internal: ["packages/application", "packages/db", "packages/observability"], forbidden: [/^react(?:\/|$)/, /^better-auth\/adapters(?:\/|$)/] },
+  "apps/api": { internal: ["packages/application", "packages/db", "packages/domain", "packages/observability"], forbidden: [/^react(?:\/|$)/, /^better-auth\/adapters(?:\/|$)/] },
   "apps/worker": { internal: ["packages/application", "packages/db", "packages/observability"], forbidden: [/controllers?(?:\/|$)/i, /^@nestjs\//] },
 };
 
@@ -110,7 +110,7 @@ async function selfTest() {
     await writeFile(join(root, "apps/worker/src/illegal-db.ts"), 'import "@url-shortener/db";');
     await writeFile(join(root, "apps/api/src/controller.ts"), 'import "better-auth/adapters/drizzle";\n');
     await writeFile(join(root, "apps/web/package.json"), '{"dependencies":{"better-auth":"1.0.0"}}');
-    await writeFile(join(root, "apps/web/src/raw-lifecycle.ts"), 'fetch("/api/auth/send-verification-email");');
+    await writeFile(join(root, "apps/web/src/raw-lifecycle.ts"), 'fetch("/api/auth/sign-in/social");');
     const found = await violations(root);
     const expected = ["domain.mts", "application", "worker.ts", "illegal-db.ts", "controller.ts", "package.json", "raw-lifecycle.ts"];
     for (const marker of expected) if (!found.some((item) => item.includes(marker))) throw new Error(`Missing negative fixture ${marker}: ${found.join("; ")}`);

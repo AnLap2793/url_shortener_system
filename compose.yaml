@@ -38,6 +38,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-url_shortener}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-url_shortener}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       NODE_ENV: development
       PORT: "3000"
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://127.0.0.1:3000}

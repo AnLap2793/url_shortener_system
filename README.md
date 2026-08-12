@@ -42,6 +42,15 @@ Mở `http://127.0.0.1:3000`. NestJS phục vụ React SPA và API cùng origin.
 
 Các mutation yêu cầu exact `Origin` và `Sec-Fetch-Site: same-origin`. Cooldown và login throttle trả `429` với `Retry-After`; không gọi trực tiếp raw Better Auth lifecycle routes.
 
+### Google sign-in
+
+Local có thể để trống cả `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET`; ứng dụng sẽ không quảng cáo Google sign-in. Nếu bật, phải đặt đủ cặp này và đăng ký duy nhất tại Google Cloud:
+
+- Authorized JavaScript origin: `PUBLIC_ORIGIN` chính xác.
+- Authorized redirect URI: `${PUBLIC_ORIGIN}/api/auth/callback/google` chính xác.
+
+Không dùng wildcard, callback khác hoặc trailing slash. Production bắt buộc HTTPS, một trusted proxy hop và đủ Google credentials từ secret store. `app` nhận Google credentials; `migrate` và `worker` không nhận chúng. Google authorization-code flow dùng Better Auth `state` và PKCE S256; `nonce`, cryptographic ID-token validation và atomic state-consume vẫn deferred. OAuth token không được lưu sau sign-in nên không hỗ trợ Google API hoặc refresh token.
+
 ### 3. Kiểm tra
 
 ```bash

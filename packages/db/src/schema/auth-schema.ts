@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 
 /**
  * Better Auth 1.6 core schema (user/session/account/verification), authored
@@ -47,7 +47,9 @@ export const account = pgTable("account", {
   password: text("password"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  unique("account_provider_id_account_id_unique").on(table.providerId, table.accountId),
+]);
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),

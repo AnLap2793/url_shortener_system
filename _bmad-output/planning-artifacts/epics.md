@@ -73,7 +73,7 @@ NFR-8: Destination URL chỉ nhận `http`/`https`; unsafe/malformed URL bị t�
 
 NFR-9: Global Short Path Namespace chặn reserved paths, collision, noncanonical input và permanent reuse sau delete bằng DB constraints.
 
-NFR-10: Google OAuth kiểm tra `state`/OIDC `nonce`; account linking yêu cầu verified email và fresh re-authentication.
+NFR-10: Google OAuth authorization-code flow kiểm tra `state` và PKCE S256; OIDC `nonce`, cryptographic ID-token validation và atomic state-consume là security hardening deferred cho Better Auth `1.6.23`. Account linking yêu cầu verified email và fresh re-authentication.
 
 NFR-11: Analytics aggregate-first, không cross-site profiling; retained dimensions được bound/normalize để tránh PII/high-cardinality leakage.
 
@@ -502,10 +502,10 @@ Tôi muốn đăng nhập bằng tài khoản Google,
 
 **Given** marketer chưa đăng nhập
 **When** họ chọn “Continue with Google”
-**Then** hệ thống bắt đầu Google OAuth/OIDC flow
+**Then** hệ thống bắt đầu Google OAuth authorization-code flow
 **And** dùng configured trusted origin và callback URL
 **And** tạo, lưu và kiểm tra `state`
-**And** tạo và kiểm tra `nonce` khi dùng OIDC.
+**And** dùng PKCE S256 cho authorization-code exchange.
 
 **Given** Google xác thực thành công với email chưa thuộc account nào
 **When** callback được xử lý
@@ -526,12 +526,12 @@ Tôi muốn đăng nhập bằng tài khoản Google,
 **And** chuyển marketer về Sign in với account-collision guidance
 **And** giữ intended route an toàn để dùng sau khi linking hoàn tất.
 
-**Given** OAuth `state` hoặc OIDC `nonce` thiếu hoặc không khớp
+**Given** OAuth `state` thiếu, altered, expired hoặc replayed; PKCE, authorization code hoặc provider exchange thất bại
 **When** callback được xử lý
 **Then** hệ thống từ chối login
-**And** không tạo account/session
+**And** không tạo `user`, `account` hoặc `session`
 **And** trả generic security error
-**And** ghi security event không chứa OAuth token hoặc authorization code.
+**And** ghi security event không chứa OAuth token, authorization code, `state` hoặc callback query đầy đủ.
 
 **Given** marketer hủy Google consent
 **When** provider trả cancellation
@@ -553,7 +553,7 @@ Tôi muốn đăng nhập bằng tài khoản Google,
 
 **Given** CI chạy auth integration tests
 **When** Google provider được stub ở boundary
-**Then** test bao phủ successful new account, existing linked account, email collision, cancellation, invalid `state`, invalid `nonce` và provider failure
+**Then** test bao phủ successful new account, existing linked account, email collision, cancellation, missing/invalid/expired/replayed `state`, PKCE/code-exchange failure và provider failure; rejected callbacks không tạo `user`, `account` hoặc `session` (state cleanup được phép)
 **And** tất cả test phải pass trước merge.
 
 ### Story 1.7: Liên kết Google an toàn
@@ -585,8 +585,8 @@ Tôi muốn liên kết tài khoản Google sau khi xác minh lại danh tính,
 **And** password không được lưu hoặc log.
 
 **Given** re-authentication thành công
-**When** Google OAuth/OIDC linking flow bắt đầu
-**Then** hệ thống tạo và kiểm tra `state`/`nonce`
+**When** Google OAuth authorization-code linking flow bắt đầu
+**Then** hệ thống tạo và kiểm tra `state`, dùng PKCE S256 và tuân theo deferred security hardening của NFR-10
 **And** hiển thị identity Google sắp liên kết trước confirmation
 **And** chỉ liên kết khi verified email phù hợp với policy.
 

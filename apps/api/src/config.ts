@@ -12,6 +12,12 @@ export interface ApiConfig {
   webDistDir?: string;
   /** Number of trusted reverse-proxy hops before the public client. */
   trustedProxyHops: number;
+  /** Google OAuth is disabled only when both credentials are absent. */
+  googleClientId?: string;
+  /** OAuth client secret; never logged. */
+  googleClientSecret?: string;
+  /** Derived from the one configured public origin; never independently configured. */
+  googleCallbackUrl?: string;
 }
 
 const unsupportedConnectionOverrides = new Set([
@@ -84,6 +90,15 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
     throw new Error("TRUSTED_PROXY_HOPS must be 1 in production");
   }
 
+  const googleClientId = environment.GOOGLE_CLIENT_ID?.trim();
+  const googleClientSecret = environment.GOOGLE_CLIENT_SECRET?.trim();
+  if (
+    Boolean(googleClientId) !== Boolean(googleClientSecret)
+    || (environment.NODE_ENV === "production" && !googleClientId)
+  ) {
+    throw new Error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be set");
+  }
+
   let webDistDir: string | undefined;
   if (environment.WEB_DIST_DIR) {
     webDistDir = resolve(environment.WEB_DIST_DIR);
@@ -98,5 +113,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ApiCon
     publicOrigin,
     webDistDir,
     trustedProxyHops,
+    googleClientId,
+    googleClientSecret,
+    googleCallbackUrl: googleClientId ? `${publicOrigin}/api/auth/callback/google` : undefined,
   };
 }

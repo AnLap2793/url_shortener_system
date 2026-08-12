@@ -19,6 +19,17 @@ interface VerificationOperation {
 const verificationOperation = new AsyncLocalStorage<VerificationOperation>();
 type Queue = VerificationEmailQueueRepository;
 
+// Better Auth merges hook data into its provider payload. Explicit nulls prevent
+// OAuth material from reaching the account table while preserving identity fields.
+const clearOAuthTokens = {
+  accessToken: null,
+  refreshToken: null,
+  idToken: null,
+  accessTokenExpiresAt: null,
+  refreshTokenExpiresAt: null,
+  scope: null,
+};
+
 function buildAuth(config: ApiConfig, db: DbHandle["db"], queue: Queue) {
   const enqueueVerificationEmail = new EnqueueVerificationEmail(queue);
   return betterAuth({
@@ -28,6 +39,25 @@ function buildAuth(config: ApiConfig, db: DbHandle["db"], queue: Queue) {
     rateLimit: { enabled: false },
     database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
     logger: { disabled: true },
+    socialProviders: config.googleClientId && config.googleClientSecret
+      ? {
+        google: {
+          clientId: config.googleClientId,
+          clientSecret: config.googleClientSecret,
+          accessType: "online",
+        },
+      }
+      : undefined,
+    account: {
+      accountLinking: { disableImplicitLinking: true, trustedProviders: [] },
+      storeAccountCookie: false,
+    },
+    databaseHooks: {
+      account: {
+        create: { before: async () => ({ data: clearOAuthTokens }) },
+        update: { before: async () => ({ data: clearOAuthTokens }) },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 12,

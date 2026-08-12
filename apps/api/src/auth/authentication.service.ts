@@ -2,6 +2,7 @@ import { Inject, Injectable, ServiceUnavailableException } from "@nestjs/common"
 import { isAPIError } from "better-auth/api";
 import { fromNodeHeaders } from "better-auth/node";
 import { createLogger } from "@url-shortener/observability";
+import { safeAuthRedirect } from "@url-shortener/domain";
 import {
   ConsumeLoginRateLimit,
   createLoginRateLimitKey,
@@ -23,6 +24,14 @@ export class LoginThrottledError extends Error {
   constructor(readonly retryAfterSeconds: number, readonly rejectedScopes: LoginRateLimitScope[]) {
     super("Login attempts are throttled");
   }
+}
+export class GoogleSignInUnavailableError extends Error {}
+export class GoogleSignInStartError extends Error {}
+
+const googleFailurePath = "/api/authentication/sign-in/google/error";
+
+function googleRedirectUrl(path: string, origin: string): string {
+  return new URL(path, origin).toString();
 }
 
 @Injectable()
@@ -84,6 +93,40 @@ export class AuthenticationService {
       if (error.body?.code === "EMAIL_NOT_VERIFIED") throw new EmailVerificationRequiredError();
       if (error.body?.code === "INVALID_EMAIL_OR_PASSWORD") throw new InvalidCredentialsError();
       throw new ServiceUnavailableException("Authentication is temporarily unavailable");
+    }
+  }
+
+  isGoogleSignInEnabled(): boolean {
+    return Boolean(this.config.googleClientId);
+  }
+
+  async startGoogleSignIn(request: RequestHeaders, redirectTo?: string): Promise<{ cookies: string[]; url: string }> {
+    if (!this.isGoogleSignInEnabled()) throw new GoogleSignInUnavailableError();
+    const intendedRoute = safeAuthRedirect(redirectTo, this.config.publicOrigin);
+    const callbackURL = googleRedirectUrl(intendedRoute, this.config.publicOrigin);
+    const errorCallbackURL = googleRedirectUrl(
+      `${googleFailurePath}?redirectTo=${encodeURIComponent(intendedRoute)}`,
+      this.config.publicOrigin,
+    );
+    try {
+      const result = await this.authHandle.auth.api.signInSocial({
+        body: {
+          provider: "google",
+          callbackURL,
+          newUserCallbackURL: callbackURL,
+          errorCallbackURL,
+          disableRedirect: true,
+        },
+        headers: fromNodeHeaders(request.headers),
+        returnHeaders: true,
+      });
+      const authorization = result.response;
+      if (!("url" in authorization) || !authorization.url) {
+        throw new Error("Google authorization URL is missing");
+      }
+      return { cookies: result.headers.getSetCookie(), url: authorization.url };
+    } catch {
+      throw new GoogleSignInStartError();
     }
   }
 

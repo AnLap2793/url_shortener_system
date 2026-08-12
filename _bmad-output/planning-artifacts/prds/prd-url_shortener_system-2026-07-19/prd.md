@@ -270,7 +270,7 @@ Marketer có thể refresh dashboard để lấy analytics mới nhất hiện c
 - NFR-7: Mọi mutation yêu cầu CSRF protection hoặc cơ chế tương đương của framework.
 - NFR-8: Destination URL chỉ nhận `http`/`https` để giảm rủi ro redirect nguy hiểm.
 - NFR-9: **Short Path Namespace** phải chặn **Reserved Path**, collision và ký tự không hợp lệ.
-- NFR-10: OAuth phải chống CSRF bằng `state` và kiểm tra `nonce` khi dùng OIDC; chi tiết kỹ thuật giao cho architecture.
+- NFR-10: Google OAuth authorization-code flow phải chống CSRF bằng `state` và dùng PKCE S256; `nonce`, cryptographic ID-token validation và atomic state-consume là security hardening deferred cho Better Auth `1.6.23`, không được tuyên bố là đã đạt trong MVP.
 
 ### Privacy và data governance
 

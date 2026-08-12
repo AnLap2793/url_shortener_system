@@ -1,4 +1,5 @@
 interface RequestLike {
+  method: string;
   path: string;
 }
 
@@ -11,14 +12,7 @@ interface ResponseLike {
 
 type Next = () => void;
 
-const deniedPaths = new Set([
-  "/sign-up/email",
-  "/send-verification-email",
-  "/verify-email",
-  "/sign-in/email",
-  "/sign-out",
-  "/get-session",
-]);
+const googleCallbackPath = "/callback/google";
 
 export function createAuthLifecycleDeny() {
   return (request: RequestLike, response: ResponseLike, next: Next): void => {
@@ -26,7 +20,7 @@ export function createAuthLifecycleDeny() {
       ? request.path.slice("/api/auth".length)
       : request.path;
     const path = rawPath.length > 1 ? rawPath.replace(/\/+$/, "") : rawPath;
-    if (!deniedPaths.has(path)) {
+    if (request.method === "GET" && path === googleCallbackPath) {
       next();
       return;
     }
