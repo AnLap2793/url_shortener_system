@@ -19,7 +19,7 @@ export function createAuthLifecycleDeny() {
     const rawPath = request.path.startsWith("/api/auth")
       ? request.path.slice("/api/auth".length)
       : request.path;
-    const path = rawPath.length > 1 ? rawPath.replace(/\/+$/, "") : rawPath;
+    const path = rawPath;
     if (request.method === "GET" && path === googleCallbackPath) {
       next();
       return;

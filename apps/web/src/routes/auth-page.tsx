@@ -27,7 +27,7 @@ export function AuthPage({ mode }: AuthPageProps) {
     previousMode.current = mode;
   }, [heading, mode]);
 
-  const otherRoute = isSignIn ? "/sign-up" : "/sign-in";
+  const otherRoute = `${isSignIn ? "/sign-up" : "/sign-in"}${location.search}`;
   const otherLabel = isSignIn ? "Create an account" : "Back to sign in";
   if (isSignIn) {
     return <SignInForm action={action as SignInActionResult | undefined} heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel} pending={pending} redirectTo={location.search} showPassword={showPassword} setShowPassword={setShowPassword} />;
@@ -97,9 +97,13 @@ function SignInForm({ action, heading, headingRef, otherRoute, otherLabel, pendi
           ? action.message
           : undefined;
   const googleStatus = new URLSearchParams(redirectTo).get("google");
-  const googleMessage = googleStatus === "unavailable"
-    ? "Google sign-in is temporarily unavailable. Try email and password or try again later."
-    : undefined;
+  const googleMessage = googleStatus === "collision"
+    ? "Google is not linked to this account. Sign in with email and password, then link Google from Account."
+    : googleStatus === "cancelled"
+      ? "Google sign-in was cancelled. Try again or sign in with email and password."
+      : googleStatus === "unavailable"
+        ? "Google sign-in is temporarily unavailable. Try email and password or try again later."
+        : undefined;
   const intendedRoute = new URLSearchParams(redirectTo).get("redirectTo") ?? "";
 
   return (

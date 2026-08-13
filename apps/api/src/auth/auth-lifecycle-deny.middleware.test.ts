@@ -22,11 +22,12 @@ function expectDenied(path: string, method?: string) {
 
 describe("raw Better Auth lifecycle allowlist", () => {
   it("only passes the exact Google callback GET to Better Auth", () => {
-    for (const path of ["/callback/google", "/api/auth/callback/google", "/callback/google/"]) {
+    for (const path of ["/callback/google", "/api/auth/callback/google"]) {
       const result = invoke(path);
       expect(result.next).toHaveBeenCalledOnce();
       expect(result.status).not.toHaveBeenCalled();
     }
+    expectDenied("/callback/google/");
   });
 
   it.each([

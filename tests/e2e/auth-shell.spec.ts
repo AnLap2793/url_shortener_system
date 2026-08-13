@@ -75,10 +75,14 @@ for (const route of routes) {
       await expect(page.getByRole("button", { name: "Hide password" })).toHaveAttribute("aria-pressed", "true");
       if (route === "/sign-in") {
         await expect(page.getByText("Password reset is not available in this version.")).toBeVisible();
+        await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
       } else {
         await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
       }
-      expect(unexpectedRequests).toEqual([]);
+      const allowedRequests = route === "/sign-in"
+        ? ["http://127.0.0.1:4173/api/authentication/google"]
+        : [];
+      expect(unexpectedRequests).toEqual(allowedRequests);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
       await page.addStyleTag({ content: "* { line-height: 1.5 !important; letter-spacing: .12em !important; word-spacing: .16em !important; } p { margin-bottom: 2em !important; }" });

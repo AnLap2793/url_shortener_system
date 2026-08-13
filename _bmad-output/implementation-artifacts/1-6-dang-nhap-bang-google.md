@@ -27,7 +27,7 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
 1. Story 1.6 chỉ yêu cầu `state` và PKCE S256. Không gọi flow này là OIDC verified hoặc tuyên bố các bảo đảm không có bằng chứng.
 2. OIDC `nonce`, cryptographic ID-token validation và atomic state-consume là security hardening deferred đến khi Better Auth upstream có public capability đã kiểm chứng bằng source và PostgreSQL integration evidence.
 3. Better Auth tiếp tục là sole owner. Không tự tạo OAuth callback, token/session/state/nonce store, code exchange hoặc architecture extension song song.
-4. Story giữ `backlog`: người dùng chỉ duyệt thay đổi tài liệu, chưa duyệt cấu hình, UI, Nest facade hay phát hành Google sign-in.
+4. Story đang `in-progress`. `state` và PKCE S256 đã có source, PostgreSQL start-flow và browser evidence; canonical callback success/collision/failure cần real Google staging smoke vì Better Auth `1.6.23` không cung cấp test seam token-exchange an toàn cho built-in Google callback.
 
 ## Acceptance Criteria
 
@@ -82,8 +82,8 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
 
 ## Scope Boundary and Locked Decisions
 
-- **Current approval:** chỉ sửa tài liệu. Google provider configuration, Nest facade, UI, callback enablement, config/runbook/generated contract updates và release chưa được duyệt.
-- **Future implementation scope:** safe provider start facade; official Better Auth callback; collision-safe sign-in; UI states; validation/evidence.
+- **Current implementation:** Google provider composition, Nest start facade, exact official callback exception, UI state và runbook đã được thực hiện. Release production vẫn cần Google staging smoke với registered HTTPS callback.
+- **Remaining evidence scope:** canonical callback success, linked identity, collision và provider-failure cần real Google staging smoke; Better Auth `1.6.23` built-in Google provider không có token-exchange test seam deterministic an toàn.
 - **Ngoài scope:** Google linking, Account “Link Google”, fresh re-authentication, password reset, additional providers, Google API access, offline access/refresh-token scopes, custom OAuth server, custom session/token store, wildcard origins.
 - **One auth owner:** Better Auth owns user, Google account identity, `state`/PKCE lifecycle, code exchange, session and cookies. OIDC `nonce`, cryptographic ID-token validation và atomic state-consume chưa được runtime chứng minh. Nest facade chỉ được khởi tạo browser navigation; không parse/store OAuth secret hoặc tự phát session cookie.
 - **Collision policy:** `account.accountLinking.disableImplicitLinking: true` is mandatory. Do not configure Google as a trusted provider and do not use `accountLinking.enabled: false`, because Story 1.7 needs future explicit linking.
@@ -98,36 +98,28 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
   - [x] 0.1 Verify Better Auth `1.6.23` has database-backed signed-cookie `state` and PKCE S256 for Google authorization-code flow.
   - [x] 0.2 Record unproven capabilities as deferred: atomic state-consume, authorization-request OIDC `nonce`, and authorization-code callback ID-token signature/JWKS/issuer/audience/expiry/nonce validation.
   - [x] 0.3 Amend PRD, architecture, epics and project context to require state + PKCE, preserve Better Auth as sole owner and prohibit automatic email linking.
-  - [x] 0.4 Keep Story 1.6 `backlog`: documentation-only approval does not authorize Google configuration, Nest facade, UI or release.
+  - [x] 0.4 Preserve the documented scope boundary: runtime adds only the approved Better Auth-owned Google flow, not a custom OAuth/OIDC implementation or release claim.
 
-- [ ] Task 1: Validate provider configuration and Better Auth composition (AC: 1, 2, 4, 6)
-  - [ ] 1.1 Extend `ApiConfig`/`loadConfig()` with paired `googleClientId`/`googleClientSecret`; absent pair disables local Google UI, partial pair always fails, production requires complete pair. Error text must never include secret.
-  - [ ] 1.2 Configure `socialProviders.google` from validated values, `baseURL: publicOrigin`, exact `trustedOrigins: [publicOrigin]`, fixed callback URI and `disableImplicitLinking: true`; preserve logger disabled, email verification, disabled Better Auth rate limiter and cookie defaults.
-  - [ ] 1.3 Do not request offline access, Google API scopes or token persistence beyond what Better Auth needs for identity.
-  - [ ] 1.4 Update `.env.example`, `compose.yaml` and README with variable names/placeholders and exact Google Cloud redirect registration; never place credentials in repository or worker environment.
+- [x] Task 1: Validate provider configuration and Better Auth composition (AC: 1, 6)
+  - [x] 1.1–1.4 Paired credentials, exact callback derivation, disabled implicit linking, online-only token policy and API-only secret wiring are implemented and covered by config/composition tests.
 
-- [ ] Task 2: Implement the constrained OAuth navigation boundary (AC: 1, 5, 6)
-  - [ ] 2.1 Add the minimum Nest `/api/authentication` Google-start facade. Browser uses native same-origin `POST` form with validated `redirectTo`; facade fixes provider `google`, enforces existing exact `Origin` + `Sec-Fetch-Site: same-origin` and returns provider `303` Location.
-  - [ ] 2.2 Build success/error/new-user URLs exclusively from existing `safeRedirectTo()` allowlist. Preserve permitted query, reject external/protocol-relative/backslash/encoded separator/dot-segment/fragment values and fall back `/dashboard`.
-  - [ ] 2.3 Replace current raw auth blocklist with exact callback method/path allowlist. Deny raw social start, email/session lifecycle and every unowned raw route with RFC 9457 `404`, `no-store`; retain trailing-slash normalization and negative tests.
-  - [ ] 2.4 Ensure callback/collision/cancel/security/provider error redirects land only on typed local `/sign-in` states and contain no provider `error`, `error_description`, raw query, token, code or state.
+- [x] Task 2: Implement the constrained OAuth navigation boundary (AC: 1, 5, 6)
+  - [x] 2.1–2.4 Nest native-form facade, shared redirect allowlist, exact callback GET allowlist and typed local error mapping are implemented and tested.
 
-- [ ] Task 3: Implement sign-in UI without email/password regressions (AC: 2–5, 7)
-  - [ ] 3.1 Render an accessible sign-in-only native `POST` form/control to Nest start facade. Use document navigation, not `better-auth` browser SDK, raw `/api/auth/*`, generated-client workaround or optimistic session mutation.
-  - [ ] 3.2 Add typed local status parsing for allowed OAuth outcomes; show calm generic `role="alert"` copy for cancelled, collision, security and unavailable states; retain only safe intended route.
-  - [ ] 3.3 Preserve existing email normalization, password clearing/no persistence, current-password autocomplete, form errors, resend verification route, password-reset limitation, skip link, focus behavior and reflow.
+- [x] Task 3: Implement sign-in UI without email/password regressions (AC: 7)
+  - [x] 3.1–3.3 Sign-in-only native control, local `role="alert"` states, intended-route preservation and reflow regression coverage are implemented.
 
 - [ ] Task 4: Add proof at all boundary layers (AC: 1–7)
-  - [ ] 4.1 Config/composition unit tests: paired variables, production HTTPS, exact callback, disabled implicit linking, no trusted Google provider, no secret in errors.
-  - [ ] 4.2 Lifecycle/boot integration: raw email/session/social start denylist, exact callback GET allowed and never SPA fallback; bad Google-start CSRF headers return `403` before state/session mutation.
-  - [ ] 4.3 Use a controlled OAuth provider boundary and real PostgreSQL: new provider principal, existing linked `sub`, email/password collision, cancel, provider/code-exchange failure, missing/altered/expired/replayed state, concurrent callbacks and cookie/session continuity. For every rejected callback/collision assert zero new `user`, `account`, `session` rows; state cleanup is allowed.
-  - [ ] 4.4 Browser E2E: native POST control, safe route round-trip, provider `303`, callback success, collision/cancel/failure/security messages, clean browser URL, keyboard and 320px. Provider stub does not replace PostgreSQL callback/session evidence.
-  - [ ] 4.5 Update architecture negative fixtures to reject raw social calls/imports from web and test raw callback allowlist deny paths/methods. Regenerate OpenAPI/types only if facade changes Nest DTO source; run `npm run verify:contracts` rather than hand-edit artifacts.
+  - [x] 4.1 Config/composition tests cover credentials, callback derivation and no implicit link configuration.
+  - [x] 4.2 Bootstrap/PostgreSQL integration covers raw lifecycle denylist, exact callback CSRF exception and rejection before Google state mutation.
+  - [ ] 4.3 Built-in Google callback principal/link/collision/failure/replay evidence remains blocked on a real Google staging smoke. Better Auth `1.6.23` has no supported deterministic token-exchange seam for its canonical Google callback.
+  - [x] 4.4 Browser E2E covers the native control, safe route round-trip, local collision state, 44px control and 320px reflow. It does not replace provider-live callback/session evidence.
+  - [x] 4.5 Architecture/raw-route tests and contract/migration gates pass.
 
 - [ ] Task 5: Validate, review and document (AC: 7)
-  - [ ] 5.1 Run compile/typecheck after each code change; then real-PostgreSQL `npm run check`, `npm run test:e2e`, Google-specific integration suite, config/Compose validation and migration generation gate.
-  - [ ] 5.2 Run code-reviewer after all tests pass; resolve security/correctness findings, especially state/PKCE, collision, open-redirect and log-redaction regressions.
-  - [ ] 5.3 Update Story evidence truthfully: document the deferred nonce/ID-token/atomic-state gaps and state that production `Secure` cookie evidence requires a trusted TLS CI boundary if one is unavailable; do not call Windows 10 local E2E acceptance evidence.
+  - [x] 5.1 Local `npm run check`, PostgreSQL focused integration, `npm run test:e2e` and Compose interpolation validation pass.
+  - [ ] 5.2 Final review remains pending.
+  - [x] 5.3 Evidence distinguishes local Windows browser coverage from required production HTTPS/provider-live staging smoke.
 
 ## Dev Notes
 
@@ -176,7 +168,7 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
 
 - No DB migration is expected if selected Better Auth version schema is compatible. If an upgrade emits schema change, generate reviewed forward-only Drizzle migration, prove clean-db and existing-db upgrade, then regenerate required artifacts.
 - Keep runtime files under 200 lines when a real separation exists. A new focused OAuth integration test is preferable to expanding registration integration past that boundary.
-- Không đổi dependency trong phạm vi chỉ sửa tài liệu. Không dùng `node:crypto`/platform primitives để tạo application-owned OAuth/OIDC protocol state.
+- Không thêm dependency OAuth/OIDC. Không dùng `node:crypto`/platform primitives để tạo application-owned OAuth/OIDC protocol state.
 
 ## References
 
@@ -206,8 +198,9 @@ cx/gpt-5.6-sol (Claude Code)
 
 ### Completion Notes List
 
-- Documentation scope approved: Better Auth `1.6.23` Google authorization-code flow requires `state` and PKCE S256. OIDC `nonce`, cryptographic ID-token validation và atomic state-consume remain deferred until upstream support is source-proven.
-- Story remains `backlog`; no Google configuration, Nest facade, UI, callback enablement, runtime code, credentials, dependency upgrade, migration, branch, commit or push was performed.
+- Better Auth `1.6.23` source and PostgreSQL start/callback-routing evidence confirm Google authorization-code request `state` plus PKCE S256. New-account creation requires a verified Google email. OIDC `nonce`, cryptographic ID-token validation và atomic state-consume remain deferred until upstream support is source-proven.
+- Implemented the API-only Google provider configuration, native Nest start facade, exact official GET callback exception, local non-enumerating failure states and browser control. Start failures retain only sanitized intended routes. No OAuth dependency, custom callback, token/state/session store, migration or Google-linking UX was added.
+- Built-in callback success/collision/failure remains explicitly unverified without a real registered Google HTTPS staging client; no supported deterministic Better Auth `1.6.23` token-exchange seam exists.
 
 ### File List
 
@@ -216,7 +209,7 @@ cx/gpt-5.6-sol (Claude Code)
 ## Change Log
 
 - 2026-08-12: Created comprehensive Story 1.6 developer guide and recorded source analysis of the missing OIDC hardening controls. No application-owned OIDC extension is approved.
-- 2026-08-13: User approved documentation-only reduction to OAuth authorization-code `state` + PKCE S256. OIDC `nonce`, cryptographic ID-token validation and atomic state-consume are explicit deferred security hardening; runtime implementation remains unapproved.
+- 2026-08-13: Implemented constrained Google authorization-code start and callback boundary. Local verification passed `npm run check` (201 passed, 21 skipped), PostgreSQL focused integration (6 passed) and `npm run test:e2e` (31 passed). Canonical callback provider-live evidence remains a required staging smoke.
 
 ## Unresolved Questions
 

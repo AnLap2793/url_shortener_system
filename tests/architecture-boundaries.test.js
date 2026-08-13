@@ -15,7 +15,7 @@ const rules = {
     internal: ["packages/contracts", "packages/domain"],
     forbidden: [/^@nestjs\//, /^drizzle-orm(?:\/|$)/, /^better-auth(?:\/|$)/],
     forbiddenContent: [
-      /\/api\/auth\/(?:sign-up\/email|send-verification-email|verify-email|sign-in\/(?:email|social)|sign-out|get-session)/,
+      /\/api\/auth\/(?:sign-up\/email|send-verification-email|verify-email|sign-in\/(?:email|social)|sign-out|get-session|callback\/)/,
       /\b(?:signUpEmail|sendVerificationEmail|verifyEmail|signInEmail|signInSocial|signOut)\s*\(/,
     ],
   },
@@ -111,8 +111,9 @@ async function selfTest() {
     await writeFile(join(root, "apps/api/src/controller.ts"), 'import "better-auth/adapters/drizzle";\n');
     await writeFile(join(root, "apps/web/package.json"), '{"dependencies":{"better-auth":"1.0.0"}}');
     await writeFile(join(root, "apps/web/src/raw-lifecycle.ts"), 'fetch("/api/auth/sign-in/social");');
+    await writeFile(join(root, "apps/web/src/raw-callback.ts"), 'fetch("/api/auth/callback/google");');
     const found = await violations(root);
-    const expected = ["domain.mts", "application", "worker.ts", "illegal-db.ts", "controller.ts", "package.json", "raw-lifecycle.ts"];
+    const expected = ["domain.mts", "application", "worker.ts", "illegal-db.ts", "controller.ts", "package.json", "raw-lifecycle.ts", "raw-callback.ts"];
     for (const marker of expected) if (!found.some((item) => item.includes(marker))) throw new Error(`Missing negative fixture ${marker}: ${found.join("; ")}`);
   } finally {
     await rm(root, { recursive: true, force: true });

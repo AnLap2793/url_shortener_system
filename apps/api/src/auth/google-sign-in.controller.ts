@@ -52,9 +52,17 @@ export class GoogleSignInController {
 
   @Get("sign-in/google/error")
   @Header("Cache-Control", "no-store")
-  async googleFailure(@Req() request: { query: { redirectTo?: string } }, @Res() response: ResponseLike): Promise<void> {
+  async googleFailure(
+    @Req() request: { query: { error?: string; redirectTo?: string } },
+    @Res() response: ResponseLike,
+  ): Promise<void> {
     const redirectTo = safeAuthRedirect(request.query.redirectTo, this.config.publicOrigin);
-    response.redirect(303, `/sign-in?google=unavailable&redirectTo=${encodeURIComponent(redirectTo)}`);
+    const status = request.query.error === "account_not_linked"
+      ? "collision"
+      : request.query.error === "access_denied"
+        ? "cancelled"
+        : "unavailable";
+    response.redirect(303, `/sign-in?google=${status}&redirectTo=${encodeURIComponent(redirectTo)}`);
   }
 
   @Post("sign-in/google")
@@ -75,8 +83,9 @@ export class GoogleSignInController {
       response.setHeader("Cache-Control", "no-store");
       response.redirect(303, result.url);
     } catch {
+      const redirectTo = safeAuthRedirect(body.redirectTo, this.config.publicOrigin);
       response.setHeader("Cache-Control", "no-store");
-      response.redirect(303, "/sign-in?google=unavailable");
+      response.redirect(303, `/sign-in?google=unavailable&redirectTo=${encodeURIComponent(redirectTo)}`);
     }
   }
 }
