@@ -1,5 +1,4 @@
 import { createApiClient } from "@url-shortener/contracts";
-import { safeAuthRedirect } from "@url-shortener/domain";
 import { redirect, type ShouldRevalidateFunctionArgs } from "react-router";
 
 export type SignInActionResult =
@@ -29,9 +28,30 @@ interface ActionArgs {
   request: Request;
 }
 
+const protectedPaths = new Set(["/dashboard", "/links", "/account"]);
+
 export function safeRedirectTo(request: Request): string {
-  const url = new URL(request.url);
-  return safeAuthRedirect(url.searchParams.get("redirectTo"), url.origin);
+  const origin = new URL(request.url).origin;
+  const value = new URL(request.url).searchParams.get("redirectTo");
+  if (
+    !value
+    || !value.startsWith("/")
+    || value.startsWith("//")
+    || value.includes("\\")
+    || /%2f|%5c/i.test(value)
+  ) return "/dashboard";
+  try {
+    const pathSegments = value.split(/[?#]/, 1)[0]!.split("/");
+    if (pathSegments.some((segment) => {
+      const decoded = decodeURIComponent(segment);
+      return decoded === "." || decoded === "..";
+    })) return "/dashboard";
+    const target = new URL(value, origin);
+    if (target.origin !== origin || !protectedPaths.has(target.pathname)) return "/dashboard";
+    return `${target.pathname}${target.search}`;
+  } catch {
+    return "/dashboard";
+  }
 }
 
 export async function signInAction({ request }: ActionArgs): Promise<Response | SignInActionResult> {
