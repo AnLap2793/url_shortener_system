@@ -20,6 +20,26 @@ describe("public auth shell", () => {
     expect(html).not.toContain("Forgot password");
   });
 
+  it("keeps the intended route when switching between public auth pages", () => {
+    const router = createMemoryRouter([{
+      path: "/sign-in",
+      element: <AuthPage mode="sign-in" />,
+    }], { initialEntries: ["/sign-in?redirectTo=%2Faccount"] });
+    const html = renderToStaticMarkup(<RouterProvider router={router} />);
+    expect(html).toContain('href="/sign-up?redirectTo=%2Faccount"');
+  });
+
+  it("renders only local, non-enumerating Google outcome messages", () => {
+    const router = createMemoryRouter([{
+      path: "/sign-in",
+      element: <AuthPage mode="sign-in" />,
+    }], { initialEntries: ["/sign-in?google=collision&redirectTo=%2Faccount"] });
+    const html = renderToStaticMarkup(<RouterProvider router={router} />);
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("Google is not linked to this account.");
+    expect(html).not.toContain("marketer@example.com");
+  });
+
   it("renders an accessible sign-up form with password manager semantics", () => {
     const html = render("sign-up");
     expect(html).toContain('method="post"');

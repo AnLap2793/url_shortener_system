@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, Length, Matches } from "class-validator";
+import { IsOptional, IsString, Length, Matches } from "class-validator";
 import { ProblemDto } from "../registration/registration.dto.js";
 
 const betterAuthEmailPattern =
@@ -24,6 +24,19 @@ export class SignInAuthenticationSuccessDto {
 export class SignOutAuthenticationSuccessDto {
   @ApiProperty({ enum: ["signed-out"] })
   status!: "signed-out";
+}
+
+export class StartGoogleSignInDto {
+  @ApiProperty({ required: false, example: "/dashboard" })
+  @IsOptional()
+  @IsString()
+  @Length(1, 2_048)
+  redirectTo?: string;
+}
+
+export class GoogleSignInEnabledDto {
+  @ApiProperty()
+  enabled!: boolean;
 }
 
 export { ProblemDto };

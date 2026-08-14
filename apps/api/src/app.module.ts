@@ -8,6 +8,7 @@ import {
 import { PgLoginRateLimitRepository, PgReadinessProbe } from "@url-shortener/db";
 import { AuthLifecycle } from "./auth/auth-lifecycle.provider.js";
 import { AuthenticationController } from "./auth/authentication.controller.js";
+import { GoogleSignInController } from "./auth/google-sign-in.controller.js";
 import { AuthenticationService } from "./auth/authentication.service.js";
 import { LoginRateLimitLifecycle } from "./auth/login-rate-limit-lifecycle.provider.js";
 import type { AuthHandle } from "./auth/better-auth-instance.js";
@@ -40,6 +41,7 @@ export class AppModule implements NestModule {
         MeController,
         RegistrationController,
         AuthenticationController,
+        GoogleSignInController,
       ],
       providers: [
         { provide: API_CONFIG, useValue: config },

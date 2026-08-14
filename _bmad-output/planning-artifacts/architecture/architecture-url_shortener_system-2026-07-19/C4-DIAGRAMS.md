@@ -2,7 +2,7 @@
 title: URL Shortener System — C4 Views
 status: draft
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-08-13
 source: ARCHITECTURE-SPINE.md
 ---
 
@@ -22,7 +22,7 @@ flowchart LR
 
     Marketer -->|Create/manage links; view analytics| System
     Visitor -->|Open short URL| System
-    System -->|OAuth/OIDC| Google
+    System -->|Planned Story 1.6: OAuth authorization code + state + PKCE S256| Google
     System -->|Verification email| Email
     System -->|HTTP 302 redirect| Visitor
 ```
@@ -42,7 +42,7 @@ flowchart TB
 
     Browser -->|Same-origin HTTPS /api| API
     Visitor -->|GET /shortPath| API
-    API -->|Sessions/OAuth| Google
+    API -->|Planned Story 1.6: OAuth authorization code + state + PKCE S256| Google
     API -->|Verification messages| Email
     API -->|Drizzle SQL| PG
     Worker -->|Claim events, UPSERT facts, retention| PG
@@ -85,12 +85,15 @@ flowchart LR
     Static -.-> Note;
 ```
 
+Google edge trong hai sơ đồ là target architecture của Story 1.6, hiện `backlog` và chưa runtime-approved. Better Auth là sole owner của Google start/callback/code exchange/account/session; browser chỉ khởi tạo qua fixed Nest facade và chỉ callback `GET /api/auth/callback/google` được tới official handler. Raw lifecycle/social route khác bị lifecycle middleware chặn trước handler. `account.accountLinking.disableImplicitLinking: true` là bắt buộc; Google không được trusted auto-link và Story 1.7 độc quyền explicit linking sau verified-email fresh re-authentication. `nonce`, cryptographic ID-token validation và atomic state-consume là hardening deferred.
+
 Route precedence inside the API process:
 
 ```mermaid
 flowchart TD
     Request[Incoming request] --> Reserved{Fixed reserved prefix or asset?}
-    Reserved -->|/api/auth/*| Auth[Better Auth handler]
+    Reserved -->|planned exact GET /api/auth/callback/google| Auth[Better Auth handler]
+    Reserved -->|other /api/auth/*| Denied[Lifecycle middleware: 404]
     Reserved -->|/api/*| Api[Nest API controller]
     Reserved -->|health or immutable static asset| System[System/static handler]
     Reserved -->|No| ShortPath{GET exact one root segment?}

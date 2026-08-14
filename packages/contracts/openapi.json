@@ -505,6 +505,114 @@
           "Authentication"
         ]
       }
+    },
+    "/api/authentication/google": {
+      "get": {
+        "operationId": "getGoogleSignInAvailability",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleSignInEnabledDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "GoogleSignIn"
+        ]
+      }
+    },
+    "/api/authentication/sign-in/google/error": {
+      "get": {
+        "operationId": "googleSignInFailure",
+        "parameters": [],
+        "responses": {
+          "303": {
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "GoogleSignIn"
+        ]
+      }
+    },
+    "/api/authentication/sign-in/google": {
+      "post": {
+        "operationId": "startGoogleSignIn",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartGoogleSignInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "",
+        "tags": [
+          "GoogleSignIn"
+        ]
+      }
     }
   },
   "info": {
@@ -691,6 +799,26 @@
         "required": [
           "status"
         ]
+      },
+      "GoogleSignInEnabledDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "StartGoogleSignInDto": {
+        "type": "object",
+        "properties": {
+          "redirectTo": {
+            "type": "string",
+            "example": "/dashboard"
+          }
+        }
       }
     }
   }

@@ -7,6 +7,9 @@ import type { AuthHandle } from "./better-auth-instance.js";
 import {
   AuthenticationService,
   EmailVerificationRequiredError,
+  GoogleSignInStartError,
+  GoogleSignInThrottledError,
+  GoogleSignInUnavailableError,
   InvalidCredentialsError,
   LoginThrottledError,
 } from "./authentication.service.js";
@@ -56,6 +59,74 @@ describe("AuthenticationService", () => {
     await expect(service.signIn(request, "marketer@example.com", "correct-horse-battery-staple"))
       .rejects.toBeInstanceOf(LoginThrottledError);
     expect(signInEmail).not.toHaveBeenCalled();
+  });
+
+  it("starts Google only through the fixed provider and safe local redirects", async () => {
+    const signInSocial = vi.fn().mockResolvedValue({
+      headers: new Headers([["Set-Cookie", "better-auth.oauth_state=opaque; HttpOnly"]]),
+      response: { redirect: true, url: "https://accounts.google.com/o/oauth2/v2/auth?opaque" },
+    });
+    const admission = limiter({ allowed: true });
+    const service = new AuthenticationService(
+      { ...config, publicOrigin: "https://links.example.com", googleClientId: "google-client-id" },
+      authHandle({ signInSocial }),
+      admission,
+    );
+
+    await expect(service.startGoogleSignIn(request, "//evil.example")).resolves.toEqual({
+      cookies: ["better-auth.oauth_state=opaque; HttpOnly"],
+      url: "https://accounts.google.com/o/oauth2/v2/auth?opaque",
+    });
+    expect(signInSocial).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.objectContaining({
+        provider: "google",
+        callbackURL: "https://links.example.com/dashboard",
+        newUserCallbackURL: "https://links.example.com/dashboard",
+        errorCallbackURL: "https://links.example.com/api/authentication/sign-in/google/error?redirectTo=%2Fdashboard",
+        disableRedirect: true,
+      }),
+      returnHeaders: true,
+    }));
+    expect(admission.consume).toHaveBeenCalledWith([{
+      scope: "ip",
+      keyDigest: expect.any(String),
+      windowSeconds: 900,
+      maximumAttempts: 30,
+    }]);
+  });
+
+  it("rejects Google start before Better Auth when the shared IP budget is exhausted", async () => {
+    const signInSocial = vi.fn();
+    const service = new AuthenticationService(
+      { ...config, googleClientId: "google-client-id" },
+      authHandle({ signInSocial }),
+      limiter({ allowed: false, retryAfterSeconds: 30, rejectedScopes: ["ip"] }),
+    );
+
+    await expect(service.startGoogleSignIn(request, "/dashboard"))
+      .rejects.toBeInstanceOf(GoogleSignInThrottledError);
+    expect(signInSocial).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before Better Auth when Google IP admission cannot run", async () => {
+    const signInSocial = vi.fn();
+    const consume = vi.fn().mockRejectedValue(new Error("database unavailable"));
+    const service = new AuthenticationService(
+      { ...config, googleClientId: "google-client-id" },
+      authHandle({ signInSocial }),
+      { consume },
+    );
+
+    await expect(service.startGoogleSignIn(request, "/dashboard"))
+      .rejects.toBeInstanceOf(GoogleSignInStartError);
+    expect(signInSocial).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when Google is disabled", async () => {
+    const signInSocial = vi.fn();
+    const service = new AuthenticationService(config, authHandle({ signInSocial }), limiter({ allowed: true }));
+    await expect(service.startGoogleSignIn(request, "/dashboard")).rejects.toBeInstanceOf(GoogleSignInUnavailableError);
+    expect(signInSocial).not.toHaveBeenCalled();
   });
 
   it("only reports signed out after Better Auth revokes the server session", async () => {

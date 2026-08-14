@@ -48,6 +48,8 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
       betterAuthSecret: "integration-secret-0123456789abcdef-xyz",
       publicOrigin: baseUrl,
       trustedProxyHops: 0,
+      googleClientId: "integration-google-client-id",
+      googleClientSecret: "integration-google-client-secret",
     };
     // Boot through the REAL composition root: any body-parser reordering must
     // fail this suite (AC3 ordering regression).
@@ -119,6 +121,38 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
     expect((await fetch(`${baseUrl}/api/me`)).status).toBe(401);
   }, 30_000);
 
+  it("starts Google through the same-origin facade with state and PKCE S256", async () => {
+    const response = await fetch(`${baseUrl}/api/authentication/sign-in/google`, {
+      method: "POST",
+      headers: { ...sameOriginHeaders(), "content-type": "application/json" },
+      body: JSON.stringify({ redirectTo: "/account" }),
+      redirect: "manual",
+    });
+    expect(response.status).toBe(303);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const setCookie = response.headers.get("set-cookie");
+    expect(setCookie).toContain("better-auth.state=");
+    const stateCookie = setCookie?.match(/better-auth\.state=([^;]+)/)?.[1];
+    expect(stateCookie).toBeTruthy();
+    const authorization = new URL(response.headers.get("location")!);
+    expect(authorization.origin).toBe("https://accounts.google.com");
+    expect(authorization.searchParams.get("redirect_uri")).toBe(`${baseUrl}/api/auth/callback/google`);
+    expect(authorization.searchParams.get("state")).toBeTruthy();
+    expect(authorization.searchParams.get("code_challenge")).toBeTruthy();
+    expect(authorization.searchParams.get("code_challenge_method")).toBe("S256");
+  });
+
+  it("rejects Google start before state mutation when CSRF headers are missing", async () => {
+    const response = await fetch(`${baseUrl}/api/authentication/sign-in/google`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ redirectTo: "/dashboard" }),
+      redirect: "manual",
+    });
+    expect(response.status).toBe(403);
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
   it("rejects /api/me without a session", async () => {
     const me = await fetch(`${baseUrl}/api/me`);
     expect(me.status).toBe(401);
@@ -150,8 +184,16 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
       expect(rejected.status, JSON.stringify(headers)).toBe(403);
       expect((await rejected.json()).code).toBe("CSRF_REJECTED");
     }
-    // GET requests are never blocked by the origin check. OAuth callbacks remain public.
-    const ok = await fetch(`${baseUrl}/api/auth/callback/google`, { signal: AbortSignal.timeout(5_000) });
-    expect(ok.status).not.toBe(403);
+    // Google callback GET reaches Better Auth's handler before Nest fallback; an
+    // invalid callback redirects to the local error facade rather than returning 404.
+    const callback = await fetch(`${baseUrl}/api/auth/callback/google`, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(5_000),
+    });
+    expect(callback.status).toBe(302);
+    expect(callback.headers.get("cache-control")).toBe("no-store");
+    expect(callback.headers.get("location")).toMatch(
+      new RegExp(`^${baseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/api/authentication/sign-in/google/error`),
+    );
   }, 30_000);
 });

@@ -119,6 +119,7 @@ _File này chứa các quy tắc và pattern quan trọng mà AI agents phải t
 - Migrations chạy một lần trước cutover, có advisory lock, N/N-1 compatibility và schema readiness check.
 - API và worker deploy/restart độc lập; cả hai xử lý SIGTERM và đóng pools/listeners trong bounded deadline.
 - Nếu implementation cần thay invariant Architecture, dừng story và cập nhật Architecture bằng AD mới; không âm thầm thêm Redis, BullMQ hoặc auth owner thứ hai.
+- Google Story 1.6 dùng Better Auth `1.6.23` OAuth authorization-code flow với database-backed signed-cookie `state` và PKCE S256. OIDC `nonce`, cryptographic ID-token validation và atomic state-consume là security hardening deferred; không tuyên bố chúng đã đạt, cũng không tự dựng OAuth callback, code exchange, token/session/state/nonce store. Story 1.7 vẫn độc quyền explicit linking sau fresh re-authentication.
 - Redis cache chỉ được xem xét sau benchmark NFR-1 thất bại và có measured bottleneck.
 
 ### Critical Don't-Miss Rules

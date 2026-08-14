@@ -93,6 +93,8 @@ describe("API configuration", () => {
       NODE_ENV: "production",
       PUBLIC_ORIGIN: "https://links.example.com",
       TRUSTED_PROXY_HOPS: "1",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
     }).trustedProxyHops).toBe(1);
     for (const value of ["-1", "1.5", "6", "invalid"]) {
       expect(() => loadConfig({ ...base, TRUSTED_PROXY_HOPS: value }))
@@ -103,6 +105,40 @@ describe("API configuration", () => {
         "PUBLIC_ORIGIN must be an absolute http(s) origin without a path",
       );
     }
+  });
+
+  it("validates the paired Google OAuth configuration without revealing the secret", () => {
+    const base = { DATABASE_URL: validDatabaseUrl, BETTER_AUTH_SECRET: validSecret };
+    expect(loadConfig(base).googleClientId).toBeUndefined();
+    expect(loadConfig(base).googleCallbackUrl).toBeUndefined();
+
+    for (const environment of [
+      { ...base, GOOGLE_CLIENT_ID: "google-client-id" },
+      { ...base, GOOGLE_CLIENT_SECRET: "sentinel-google-secret" },
+      { ...base, GOOGLE_CLIENT_ID: "", GOOGLE_CLIENT_SECRET: "sentinel-google-secret" },
+      { ...base, GOOGLE_CLIENT_ID: "google-client-id", GOOGLE_CLIENT_SECRET: "" },
+    ]) {
+      const attempt = () => loadConfig(environment);
+      expect(attempt).toThrow("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be set");
+      try {
+        attempt();
+      } catch (error) {
+        expect(String(error)).not.toContain("sentinel-google-secret");
+      }
+    }
+
+    expect(() => loadConfig({ ...base, NODE_ENV: "production", PUBLIC_ORIGIN: "https://links.example.com", TRUSTED_PROXY_HOPS: "1" }))
+      .toThrow("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be set");
+
+    const config = loadConfig({
+      ...base,
+      PUBLIC_ORIGIN: "https://links.example.com",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "sentinel-google-secret",
+    });
+    expect(config.googleClientId).toBe("google-client-id");
+    expect(config.googleClientSecret).toBe("sentinel-google-secret");
+    expect(config.googleCallbackUrl).toBe("https://links.example.com/api/auth/callback/google");
   });
 
   it("does not read worker-only email provider secrets", () => {
