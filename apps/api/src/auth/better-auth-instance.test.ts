@@ -14,12 +14,12 @@ describe("Better Auth email verification composition", () => {
     expect(betterAuthSource).toContain("codeVerifier");
   });
 
-  it("requires a verified Google email before Better Auth can create an account", () => {
+  it("rejects every Google profile without an explicitly verified email", () => {
     const source = readFileSync(
       fileURLToPath(new URL("./better-auth-instance.ts", import.meta.url)),
       "utf8",
     );
-    expect(source).toContain("profile.email_verified ? {} : { email: null }");
+    expect(source).toContain("profile.email_verified === true ? {} : { email: null }");
   });
 
   it("builds only the public SPA verification URL", () => {

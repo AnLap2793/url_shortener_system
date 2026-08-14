@@ -7,6 +7,8 @@ import type { AuthHandle } from "./better-auth-instance.js";
 import {
   AuthenticationService,
   EmailVerificationRequiredError,
+  GoogleSignInStartError,
+  GoogleSignInThrottledError,
   GoogleSignInUnavailableError,
   InvalidCredentialsError,
   LoginThrottledError,
@@ -64,10 +66,11 @@ describe("AuthenticationService", () => {
       headers: new Headers([["Set-Cookie", "better-auth.oauth_state=opaque; HttpOnly"]]),
       response: { redirect: true, url: "https://accounts.google.com/o/oauth2/v2/auth?opaque" },
     });
+    const admission = limiter({ allowed: true });
     const service = new AuthenticationService(
       { ...config, publicOrigin: "https://links.example.com", googleClientId: "google-client-id" },
       authHandle({ signInSocial }),
-      limiter({ allowed: true }),
+      admission,
     );
 
     await expect(service.startGoogleSignIn(request, "//evil.example")).resolves.toEqual({
@@ -84,6 +87,39 @@ describe("AuthenticationService", () => {
       }),
       returnHeaders: true,
     }));
+    expect(admission.consume).toHaveBeenCalledWith([{
+      scope: "ip",
+      keyDigest: expect.any(String),
+      windowSeconds: 900,
+      maximumAttempts: 30,
+    }]);
+  });
+
+  it("rejects Google start before Better Auth when the shared IP budget is exhausted", async () => {
+    const signInSocial = vi.fn();
+    const service = new AuthenticationService(
+      { ...config, googleClientId: "google-client-id" },
+      authHandle({ signInSocial }),
+      limiter({ allowed: false, retryAfterSeconds: 30, rejectedScopes: ["ip"] }),
+    );
+
+    await expect(service.startGoogleSignIn(request, "/dashboard"))
+      .rejects.toBeInstanceOf(GoogleSignInThrottledError);
+    expect(signInSocial).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before Better Auth when Google IP admission cannot run", async () => {
+    const signInSocial = vi.fn();
+    const consume = vi.fn().mockRejectedValue(new Error("database unavailable"));
+    const service = new AuthenticationService(
+      { ...config, googleClientId: "google-client-id" },
+      authHandle({ signInSocial }),
+      { consume },
+    );
+
+    await expect(service.startGoogleSignIn(request, "/dashboard"))
+      .rejects.toBeInstanceOf(GoogleSignInStartError);
+    expect(signInSocial).not.toHaveBeenCalled();
   });
 
   it("fails closed when Google is disabled", async () => {

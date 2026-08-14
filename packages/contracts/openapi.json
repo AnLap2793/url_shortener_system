@@ -530,13 +530,28 @@
     },
     "/api/authentication/sign-in/google/error": {
       "get": {
-        "operationId": "GoogleSignInController_googleFailure",
+        "operationId": "googleSignInFailure",
         "parameters": [],
         "responses": {
-          "200": {
+          "303": {
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
             "description": ""
           }
         },
+        "summary": "",
         "tags": [
           "GoogleSignIn"
         ]
@@ -569,6 +584,24 @@
                 "schema": {
                   "type": "string",
                   "format": "uri"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDto"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
                 }
               }
             },

@@ -47,7 +47,7 @@ function buildAuth(config: ApiConfig, db: DbHandle["db"], queue: Queue) {
           clientId: config.googleClientId,
           clientSecret: config.googleClientSecret,
           accessType: "online",
-          mapProfileToUser: (profile) => profile.email_verified ? {} : { email: null },
+          mapProfileToUser: (profile) => profile.email_verified === true ? {} : { email: null },
         },
       }
       : undefined,

@@ -4,7 +4,7 @@ baseline_commit: 325ac92
 
 # Story 1.6: Đăng nhập bằng Google
 
-Status: in-progress — Google OAuth authorization-code implementation approved
+Status: review — implementation and operator-confirmed HTTPS staging smoke complete; post-review verification pending
 
 ## Story
 
@@ -27,7 +27,7 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
 1. Story 1.6 chỉ yêu cầu `state` và PKCE S256. Không gọi flow này là OIDC verified hoặc tuyên bố các bảo đảm không có bằng chứng.
 2. OIDC `nonce`, cryptographic ID-token validation và atomic state-consume là security hardening deferred đến khi Better Auth upstream có public capability đã kiểm chứng bằng source và PostgreSQL integration evidence.
 3. Better Auth tiếp tục là sole owner. Không tự tạo OAuth callback, token/session/state/nonce store, code exchange hoặc architecture extension song song.
-4. Story đang `in-progress`. `state` và PKCE S256 đã có source, PostgreSQL start-flow và browser evidence; canonical callback success/collision/failure cần real Google staging smoke vì Better Auth `1.6.23` không cung cấp test seam token-exchange an toàn cho built-in Google callback.
+4. Operator đã xác nhận HTTPS staging smoke hoàn tất. Evidence được ghi nhận là operator-confirmed; không thay thế deterministic CI callback proof vì Better Auth `1.6.23` không cung cấp test seam token-exchange an toàn cho built-in Google callback.
 
 ## Acceptance Criteria
 
@@ -47,30 +47,32 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
    - **And** `/api/me` resolve cùng canonical string `ActorId`; không trả OAuth token, authorization code hoặc Better Auth token trong JSON/log.
 
 3. **Đăng nhập identity Google đã liên kết, không duplicate ownership**
-   - **Given** Google `sub` đã liên kết với canonical user
+   - **Given** Google `sub` đã liên kết với canonical user và Google trả `email_verified: true`
    - **When** callback hợp lệ hoàn tất
    - **Then** Better Auth đăng nhập đúng user cũ, không tạo user/account/ownership thứ hai
+   - **And** Google claim có `email_verified` thiếu, sai kiểu hoặc `false` bị từ chối fail-closed, kể cả khi `sub` đã liên kết; không tạo session hoặc mutate ownership.
    - **And** canonical owner/session behavior của Story 1.5 không đổi.
 
 4. **Email collision không auto-link hoặc auto-merge**
    - **Given** Google trả verified email trùng một email/password account chưa có Google identity liên kết
    - **When** callback được xử lý
    - **Then** không tạo user/account/session mới, không login theo email claim và không thay đổi ownership
-   - **And** browser trở về `/sign-in` với guidance không-enumerating: Google chưa được liên kết; hãy đăng nhập email/password rồi dùng Account → Link Google
+   - **And** browser trở về `/sign-in` với guidance không-enumerating: Google chưa được liên kết; hãy đăng nhập bằng email/password.
    - **And** giữ `redirectTo` chỉ khi nó qua allowlist `/dashboard`, `/links`, `/account`; Story 1.7 sở hữu re-authentication và explicit link.
 
 5. **Failure/cancel/tamper fail closed**
    - **Given** callback thiếu, altered, expired hoặc replayed `state`; Google trả cancel; PKCE, authorization code hoặc provider exchange thất bại; hoặc response network/server lỗi
    - **When** flow kết thúc
    - **Then** không tạo partial user/account/session và không mutate account hiện có; cleanup state/verification được phép
-   - **And** browser quay về Sign in với generic recoverable message, có retry/email-password action và giữ intended protected route an toàn
+   - **And** browser quay về Sign in với generic recoverable message và retry/email-password action; khi `state` thiếu, sai, hết hạn hoặc không thể parse/recover, local facade fail-closed dùng fallback `/dashboard` thay vì giữ per-flow `redirectTo`.
    - **And** security event chỉ chứa category/correlation ID; không log raw email, `code`, token, `state`, `nonce`, cookie hoặc full callback query.
 
 6. **Configuration và route boundary fail closed**
    - **Given** `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` chỉ có một giá trị, production thiếu provider config, `PUBLIC_ORIGIN` không phải HTTPS hoặc callback/origin không exact
    - **When** API khởi động/readiness
    - **Then** process fail fast với message không chứa secret; không có fallback client/callback/origin
-   - **And** local development có thể tắt Google chỉ khi cả hai Google variables đều absent; UI không quảng cáo flow không thể chạy
+   - **And** local development có thể tắt Google chỉ khi cả hai Google variables đều absent; UI dùng route loader fail-closed và không quảng cáo flow không thể chạy
+   - **And** Google start dùng PostgreSQL admission theo IP chung với email sign-in (`30` attempts / `900` giây); throttle trả local `303` với `google=throttled`, không khởi tạo Better Auth state hoặc cookie.
    - **And** raw `/api/auth/sign-in/social` và email/session lifecycle routes tiếp tục bị deny trước Better Auth; chỉ exact `/api/auth/callback/google` được mở cho provider callback.
 
 7. **Accessible Sign in và executable evidence**
@@ -82,8 +84,8 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
 
 ## Scope Boundary and Locked Decisions
 
-- **Current implementation:** Google provider composition, Nest start facade, exact official callback exception, UI state và runbook đã được thực hiện. Release production vẫn cần Google staging smoke với registered HTTPS callback.
-- **Remaining evidence scope:** canonical callback success, linked identity, collision và provider-failure cần real Google staging smoke; Better Auth `1.6.23` built-in Google provider không có token-exchange test seam deterministic an toàn.
+- **Current implementation:** Google provider composition, Nest start facade, exact official callback exception, UI state và runbook đã được thực hiện. Operator xác nhận đã hoàn tất HTTPS staging smoke với registered callback.
+- **Evidence limit:** built-in Google callback không có token-exchange test seam deterministic an toàn trong Better Auth `1.6.23`; operator-confirmed staging smoke bổ sung evidence vận hành, không biến callback lifecycle thành deterministic CI coverage.
 - **Ngoài scope:** Google linking, Account “Link Google”, fresh re-authentication, password reset, additional providers, Google API access, offline access/refresh-token scopes, custom OAuth server, custom session/token store, wildcard origins.
 - **One auth owner:** Better Auth owns user, Google account identity, `state`/PKCE lifecycle, code exchange, session and cookies. OIDC `nonce`, cryptographic ID-token validation và atomic state-consume chưa được runtime chứng minh. Nest facade chỉ được khởi tạo browser navigation; không parse/store OAuth secret hoặc tự phát session cookie.
 - **Collision policy:** `account.accountLinking.disableImplicitLinking: true` is mandatory. Do not configure Google as a trusted provider and do not use `accountLinking.enabled: false`, because Story 1.7 needs future explicit linking.
@@ -109,17 +111,31 @@ Better Auth `1.6.23` social authorization-code flow có opaque database-backed s
 - [x] Task 3: Implement sign-in UI without email/password regressions (AC: 7)
   - [x] 3.1–3.3 Sign-in-only native control, local `role="alert"` states, intended-route preservation and reflow regression coverage are implemented.
 
-- [ ] Task 4: Add proof at all boundary layers (AC: 1–7)
+- [x] Task 4: Add proof at all boundary layers (AC: 1–7)
   - [x] 4.1 Config/composition tests cover credentials, callback derivation and no implicit link configuration.
   - [x] 4.2 Bootstrap/PostgreSQL integration covers raw lifecycle denylist, exact callback CSRF exception and rejection before Google state mutation.
-  - [ ] 4.3 Built-in Google callback principal/link/collision/failure/replay evidence remains blocked on a real Google staging smoke. Better Auth `1.6.23` has no supported deterministic token-exchange seam for its canonical Google callback.
+  - [x] 4.3 Operator xác nhận built-in Google callback staging smoke đã hoàn tất. Better Auth `1.6.23` vẫn không có supported deterministic token-exchange seam cho canonical callback; evidence này là operational, không phải CI simulation.
   - [x] 4.4 Browser E2E covers the native control, safe route round-trip, local collision state, 44px control and 320px reflow. It does not replace provider-live callback/session evidence.
   - [x] 4.5 Architecture/raw-route tests and contract/migration gates pass.
 
 - [ ] Task 5: Validate, review and document (AC: 7)
   - [x] 5.1 Local `npm run check`, PostgreSQL focused integration, `npm run test:e2e` and Compose interpolation validation pass.
-  - [ ] 5.2 Final review remains pending.
+  - [x] 5.2 Post-review repository gates passed: `npm test` (210 passed, 22 skipped), focused Google E2E (3 passed), contract verification, migration metadata verification, typecheck, architecture gate and `git diff --check`. Local Docker PostgreSQL integration passed: migration upgrade and Better Auth bootstrap suites (8 passed). Story stays `review`, not `done` pending final change review/commit.
   - [x] 5.3 Evidence distinguishes local Windows browser coverage from required production HTTPS/provider-live staging smoke.
+
+### Review Findings
+
+- [x] [Review][Decision 1A] Google claim `email_verified: false` (or absent/malformed) is rejected fail-closed before provider identity resolution, including an already-linked `sub`; AC 3 records this exception. [apps/api/src/auth/better-auth-instance.ts:49]
+- [x] [Review][Decision 2A] Missing, malformed, expired or unrecoverable OAuth `state` uses Better Auth's static local error facade and safe `/dashboard` fallback; no application-owned correlation store was added. [apps/api/src/auth/better-auth-instance.ts:42]
+- [x] [Review][Patch] Repeated callback query values are scalarized at the Express trust boundary and regression-tested; non-scalar values fail closed to local `/dashboard` without a `500`. [apps/api/src/auth/google-sign-in.controller.ts]
+- [x] [Review][Patch] Google start consumes the existing PostgreSQL IP admission budget before Better Auth state creation; throttling returns a local `303` navigation state, not browser-visible JSON. [apps/api/src/auth/authentication.service.ts]
+- [x] [Review][Patch] Raw Google callback responses receive `Cache-Control: no-store` before immediate Better Auth delegation. [apps/api/src/bootstrap.ts]
+- [x] [Review][Patch] Google start validation uses the existing RFC 9457/no-store `AuthenticationProblemFilter`. [apps/api/src/auth/google-sign-in.controller.ts]
+- [x] [Review][Patch] Swagger declares the local Google error facade `303`; generated OpenAPI/types were regenerated. [apps/api/src/auth/google-sign-in.controller.ts]
+- [x] [Review][Patch] E2E includes an enabled Google CTA at 320 CSS pixels with target-size, focus and horizontal-overflow assertions. [tests/e2e/google-sign-in.spec.ts]
+- [x] [Review][Patch] Google availability is sign-in route loader data; loader failures hide the CTA without blocking email/password. [apps/web/src/routes/google-availability-loader.ts]
+- [x] [Review][Patch] Collision copy no longer promises unavailable Account linking. [apps/web/src/routes/auth-page.tsx]
+- [x] [Review][Patch] Migration integration constructs a real `0005` chain, seeds legacy account ownership, upgrades to `0006`, checks uniqueness and rerun idempotence. [packages/db/src/migrations.integration.test.ts]
 
 ## Dev Notes
 
@@ -210,6 +226,8 @@ cx/gpt-5.6-sol (Claude Code)
 
 - 2026-08-12: Created comprehensive Story 1.6 developer guide and recorded source analysis of the missing OIDC hardening controls. No application-owned OIDC extension is approved.
 - 2026-08-13: Implemented constrained Google authorization-code start and callback boundary. Local verification passed `npm run check` (201 passed, 21 skipped), PostgreSQL focused integration (6 passed) and `npm run test:e2e` (31 passed). Canonical callback provider-live evidence remains a required staging smoke.
+- 2026-08-13: Operator confirmed the HTTPS staging smoke is complete. Story moved to `review`; explicit deferred OIDC nonce, atomic state consumption and cryptographic ID-token validation remain unchanged.
+- 2026-08-14: Applied review decisions 1A/2A and bounded patches. Focused API unit tests, web loader/page tests, generated contract verification, migration metadata verification, typecheck and Google E2E passed. Local Docker PostgreSQL migration-upgrade and Better Auth bootstrap integration also passed (8 tests); status remains `review` pending final change review/commit.
 
 ## Unresolved Questions
 

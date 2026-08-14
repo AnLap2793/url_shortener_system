@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ApiConfig } from "../config.js";
+import { GoogleSignInThrottledError } from "./authentication.service.js";
 import { GoogleSignInController } from "./google-sign-in.controller.js";
 
 const config = { publicOrigin: "https://links.example.com" } as ApiConfig;
@@ -23,6 +24,17 @@ describe("GoogleSignInController", () => {
     expect(result.redirect).toHaveBeenCalledWith(303, `/sign-in?google=${status}&redirectTo=%2Fdashboard`);
   });
 
+  it("fails closed for repeated callback query parameters", async () => {
+    const controller = new GoogleSignInController({ isGoogleSignInEnabled: () => true } as never, config);
+    const result = response();
+
+    await expect(controller.googleFailure({
+      query: { error: ["access_denied", "account_not_linked"], redirectTo: ["/dashboard", "//evil.example"] },
+    }, result)).resolves.toBeUndefined();
+
+    expect(result.redirect).toHaveBeenCalledWith(303, "/sign-in?google=unavailable&redirectTo=%2Fdashboard");
+  });
+
   it("redirects the native POST facade and forwards only Better Auth cookies", async () => {
     const startGoogleSignIn = vi.fn().mockResolvedValue({
       cookies: ["better-auth.oauth_state=opaque; HttpOnly"],
@@ -41,6 +53,21 @@ describe("GoogleSignInController", () => {
     expect(result.setHeader).toHaveBeenCalledWith("Set-Cookie", ["better-auth.oauth_state=opaque; HttpOnly"]);
     expect(result.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
     expect(result.redirect).toHaveBeenCalledWith(303, "https://accounts.google.com/o/oauth2/v2/auth?opaque");
+  });
+
+  it("redirects throttled Google starts to a local recovery state", async () => {
+    const startGoogleSignIn = vi.fn().mockRejectedValue(new GoogleSignInThrottledError());
+    const controller = new GoogleSignInController({ startGoogleSignIn } as never, config);
+    const result = response();
+
+    await controller.startGoogleSignIn(
+      { headers: { origin: "https://links.example.com" } },
+      { redirectTo: "/account" },
+      result,
+    );
+
+    expect(result.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
+    expect(result.redirect).toHaveBeenCalledWith(303, "/sign-in?google=throttled&redirectTo=%2Faccount");
   });
 
   it("preserves only a safe intended route when Google start fails", async () => {

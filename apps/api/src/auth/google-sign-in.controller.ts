@@ -8,16 +8,27 @@ import {
   Post,
   Req,
   Res,
+  UseFilters,
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
-import { ApiOkResponse, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import {
+  ApiExtraModels,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  getSchemaPath,
+} from "@nestjs/swagger";
 import { registrationProblem } from "../registration/registration-problem.js";
 import type { ApiConfig } from "../config.js";
 import { API_CONFIG } from "../tokens.js";
-import { GoogleSignInEnabledDto, StartGoogleSignInDto } from "./authentication.dto.js";
+import { GoogleSignInEnabledDto, ProblemDto, StartGoogleSignInDto } from "./authentication.dto.js";
 import { safeAuthRedirect } from "@url-shortener/domain";
-import { AuthenticationService } from "./authentication.service.js";
+import {
+  AuthenticationService,
+  GoogleSignInThrottledError,
+} from "./authentication.service.js";
+import { AuthenticationProblemFilter } from "./authentication-problem.filter.js";
 
 interface RequestLike {
   headers: Record<string, string | string[] | undefined>;
@@ -34,7 +45,13 @@ const validationPipe = new ValidationPipe({
   exceptionFactory: () => registrationProblem(400, "Invalid request", "VALIDATION_FAILED", "/api/authentication"),
 });
 
+const noStoreHeaders = {
+  "Cache-Control": { schema: { type: "string", example: "no-store" } },
+};
+
 @Controller("api/authentication")
+@ApiExtraModels(ProblemDto)
+@UseFilters(AuthenticationProblemFilter)
 @UsePipes(validationPipe)
 export class GoogleSignInController {
   constructor(
@@ -52,14 +69,20 @@ export class GoogleSignInController {
 
   @Get("sign-in/google/error")
   @Header("Cache-Control", "no-store")
+  @ApiOperation({ operationId: "googleSignInFailure" })
+  @ApiResponse({ status: 303, headers: { ...noStoreHeaders, Location: { schema: { type: "string", format: "uri" } } } })
   async googleFailure(
-    @Req() request: { query: { error?: string; redirectTo?: string } },
+    @Req() request: { query: { error?: string | string[]; redirectTo?: string | string[] } },
     @Res() response: ResponseLike,
   ): Promise<void> {
-    const redirectTo = safeAuthRedirect(request.query.redirectTo, this.config.publicOrigin);
-    const status = request.query.error === "account_not_linked"
+    const redirectTo = safeAuthRedirect(
+      typeof request.query.redirectTo === "string" ? request.query.redirectTo : undefined,
+      this.config.publicOrigin,
+    );
+    const error = typeof request.query.error === "string" ? request.query.error : undefined;
+    const status = error === "account_not_linked"
       ? "collision"
-      : request.query.error === "access_denied"
+      : error === "access_denied"
         ? "cancelled"
         : "unavailable";
     response.redirect(303, `/sign-in?google=${status}&redirectTo=${encodeURIComponent(redirectTo)}`);
@@ -69,9 +92,14 @@ export class GoogleSignInController {
   @HttpCode(303)
   @ApiOperation({ operationId: "startGoogleSignIn" })
   @ApiResponse({ status: 303, headers: {
-    "Cache-Control": { schema: { type: "string", example: "no-store" } },
+    ...noStoreHeaders,
     Location: { schema: { type: "string", format: "uri" } },
   } })
+  @ApiResponse({
+    status: 400,
+    content: { "application/problem+json": { schema: { $ref: getSchemaPath(ProblemDto) } } },
+    headers: noStoreHeaders,
+  })
   async startGoogleSignIn(
     @Req() request: RequestLike,
     @Body() body: StartGoogleSignInDto,
@@ -82,10 +110,11 @@ export class GoogleSignInController {
       if (result.cookies.length) response.setHeader("Set-Cookie", result.cookies);
       response.setHeader("Cache-Control", "no-store");
       response.redirect(303, result.url);
-    } catch {
+    } catch (error) {
       const redirectTo = safeAuthRedirect(body.redirectTo, this.config.publicOrigin);
+      const status = error instanceof GoogleSignInThrottledError ? "throttled" : "unavailable";
       response.setHeader("Cache-Control", "no-store");
-      response.redirect(303, `/sign-in?google=unavailable&redirectTo=${encodeURIComponent(redirectTo)}`);
+      response.redirect(303, `/sign-in?google=${status}&redirectTo=${encodeURIComponent(redirectTo)}`);
     }
   }
 }

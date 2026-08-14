@@ -26,6 +26,7 @@ export class LoginThrottledError extends Error {
   }
 }
 export class GoogleSignInUnavailableError extends Error {}
+export class GoogleSignInThrottledError extends Error {}
 export class GoogleSignInStartError extends Error {}
 
 const googleFailurePath = "/api/authentication/sign-in/google/error";
@@ -102,6 +103,22 @@ export class AuthenticationService {
 
   async startGoogleSignIn(request: RequestHeaders, redirectTo?: string): Promise<{ cookies: string[]; url: string }> {
     if (!this.isGoogleSignInEnabled()) throw new GoogleSignInUnavailableError();
+    const sourceIp = request.ip;
+    if (!sourceIp) throw new GoogleSignInStartError();
+
+    let admission;
+    try {
+      admission = await this.#consumeRateLimit.execute([{
+        scope: "ip",
+        keyDigest: createLoginRateLimitKey("ip", sourceIp, this.config.betterAuthSecret),
+        windowSeconds: 900,
+        maximumAttempts: 30,
+      }]);
+    } catch {
+      throw new GoogleSignInStartError();
+    }
+    if (!admission.allowed) throw new GoogleSignInThrottledError();
+
     const intendedRoute = safeAuthRedirect(redirectTo, this.config.publicOrigin);
     const callbackURL = googleRedirectUrl(intendedRoute, this.config.publicOrigin);
     const errorCallbackURL = googleRedirectUrl(

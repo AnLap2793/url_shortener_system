@@ -191,6 +191,7 @@ describe.skipIf(!integrationUrl)("Better Auth bootstrap integration", () => {
       signal: AbortSignal.timeout(5_000),
     });
     expect(callback.status).toBe(302);
+    expect(callback.headers.get("cache-control")).toBe("no-store");
     expect(callback.headers.get("location")).toMatch(
       new RegExp(`^${baseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/api/authentication/sign-in/google/error`),
     );

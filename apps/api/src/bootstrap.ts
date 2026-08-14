@@ -12,7 +12,11 @@ interface ExpressLike {
   set(name: string, value: unknown): void;
   use(path: string, handler: unknown): void;
   use(handler: unknown): void;
-  get(path: string, handler: unknown): void;
+  get(path: string, ...handlers: unknown[]): void;
+}
+
+interface ResponseLike {
+  setHeader(name: string, value: string): void;
 }
 
 interface BodyParserCapable {
@@ -38,7 +42,14 @@ export async function bootstrap(
   server.set("trust proxy", config.trustedProxyHops);
   server.use("/api", createOriginCheck(config.publicOrigin));
   server.use("/api/auth", createAuthLifecycleDeny());
-  server.get("/api/auth/callback/google", toNodeHandler(authHandle.auth));
+  server.get(
+    "/api/auth/callback/google",
+    (_request: unknown, response: ResponseLike, next: () => void) => {
+      response.setHeader("Cache-Control", "no-store");
+      next();
+    },
+    toNodeHandler(authHandle.auth),
+  );
   (app as unknown as BodyParserCapable).useBodyParser("json");
   (app as unknown as BodyParserCapable).useBodyParser("urlencoded", { extended: true });
   server.use(registrationParserError);

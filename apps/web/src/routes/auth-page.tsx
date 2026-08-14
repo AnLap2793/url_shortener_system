@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, Link, useActionData, useLocation, useNavigation } from "react-router";
+import { Form, Link, useActionData, useLoaderData, useLocation, useNavigation } from "react-router";
 import { ErrorSummary } from "../components/error-summary.js";
 import { PrimaryButton } from "../components/primary-button.js";
 import { RouteAnnouncer } from "./route-announcer.js";
@@ -18,6 +18,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   const action = useActionData() as SignUpActionResult | SignInActionResult | undefined;
   const navigation = useNavigation();
   const location = useLocation();
+  const googleAvailability = useLoaderData() as { enabled?: boolean } | undefined;
   const [showPassword, setShowPassword] = useState(false);
   const pending = navigation.state === "submitting";
 
@@ -30,7 +31,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   const otherRoute = `${isSignIn ? "/sign-up" : "/sign-in"}${location.search}`;
   const otherLabel = isSignIn ? "Create an account" : "Back to sign in";
   if (isSignIn) {
-    return <SignInForm action={action as SignInActionResult | undefined} heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel} pending={pending} redirectTo={location.search} showPassword={showPassword} setShowPassword={setShowPassword} />;
+    return <SignInForm action={action as SignInActionResult | undefined} googleEnabled={googleAvailability?.enabled === true} heading={heading} headingRef={headingRef} otherRoute={otherRoute} otherLabel={otherLabel} pending={pending} redirectTo={location.search} showPassword={showPassword} setShowPassword={setShowPassword} />;
   }
 
   const signUpAction = action as SignUpActionResult | undefined;
@@ -60,8 +61,9 @@ export function AuthPage({ mode }: AuthPageProps) {
   );
 }
 
-function SignInForm({ action, heading, headingRef, otherRoute, otherLabel, pending, redirectTo, showPassword, setShowPassword }: {
+function SignInForm({ action, googleEnabled, heading, headingRef, otherRoute, otherLabel, pending, redirectTo, showPassword, setShowPassword }: {
   action: SignInActionResult | undefined;
+  googleEnabled: boolean;
   heading: string;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
   otherRoute: string;
@@ -72,19 +74,10 @@ function SignInForm({ action, heading, headingRef, otherRoute, otherLabel, pendi
   setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const passwordRef = useRef<HTMLInputElement>(null);
-  const [googleEnabled, setGoogleEnabled] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
   useEffect(() => {
     if (action && action.status !== "invalid" && passwordRef.current) passwordRef.current.value = "";
   }, [action]);
-  useEffect(() => {
-    let active = true;
-    fetch("/api/authentication/google", { credentials: "same-origin" })
-      .then((response) => response.ok ? response.json() as Promise<{ enabled?: boolean }> : undefined)
-      .then((result) => { if (active) setGoogleEnabled(result?.enabled === true); })
-      .catch(() => { if (active) setGoogleEnabled(false); });
-    return () => { active = false; };
-  }, []);
   const errors = action?.status === "invalid" ? action.errors : [];
   const email = action && "email" in action ? action.email ?? "" : "";
   const message = action?.status === "credentials-invalid"
@@ -98,12 +91,14 @@ function SignInForm({ action, heading, headingRef, otherRoute, otherLabel, pendi
           : undefined;
   const googleStatus = new URLSearchParams(redirectTo).get("google");
   const googleMessage = googleStatus === "collision"
-    ? "Google is not linked to this account. Sign in with email and password, then link Google from Account."
+    ? "Google is not linked to this account. Sign in with email and password."
     : googleStatus === "cancelled"
       ? "Google sign-in was cancelled. Try again or sign in with email and password."
-      : googleStatus === "unavailable"
-        ? "Google sign-in is temporarily unavailable. Try email and password or try again later."
-        : undefined;
+      : googleStatus === "throttled"
+        ? "Too many Google sign-in attempts. Try again later or sign in with email and password."
+        : googleStatus === "unavailable"
+          ? "Google sign-in is temporarily unavailable. Try email and password or try again later."
+          : undefined;
   const intendedRoute = new URLSearchParams(redirectTo).get("redirectTo") ?? "";
 
   return (

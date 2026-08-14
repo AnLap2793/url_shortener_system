@@ -156,7 +156,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["GoogleSignInController_googleFailure"];
+        get: operations["googleSignInFailure"];
         put?: never;
         post?: never;
         delete?: never;
@@ -609,7 +609,7 @@ export interface operations {
             };
         };
     };
-    GoogleSignInController_googleFailure: {
+    googleSignInFailure: {
         parameters: {
             query?: never;
             header?: never;
@@ -618,8 +618,10 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: {
+            303: {
                 headers: {
+                    "Cache-Control"?: string;
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -646,6 +648,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDto"];
+                };
             };
         };
     };

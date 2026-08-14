@@ -9,7 +9,7 @@ const testSecret = "test-secret-0123456789abcdef-0123456789";
 
 function runApi(environment: Record<string, string>) {
   return spawn(process.execPath, ["apps/api/dist/main.js"], {
-    env: { ...process.env, BETTER_AUTH_SECRET: testSecret, ...environment },
+    env: { ...process.env, NODE_ENV: "test", BETTER_AUTH_SECRET: testSecret, ...environment },
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
